@@ -1,0 +1,13 @@
+[package]
+name = "pipeline"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+axum.workspace = true
+jsonwebtoken.workspace = true
+serde.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+axum-error-handler.workspace = true
+sqlx.workspace = true

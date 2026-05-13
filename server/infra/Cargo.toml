@@ -1,0 +1,11 @@
+[package]
+name = "infra"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+sqlx.workspace = true
+uuid.workspace = true
+
+commands = { path = "../commands" }
+pipeline = { path = "../pipeline" }
