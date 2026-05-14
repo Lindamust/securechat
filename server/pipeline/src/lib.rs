@@ -9,16 +9,21 @@ pub trait Command {
     type Output;
 }
 
-use error::PipelineResult;
 use request::Request;
 use stages::{CommandReady, Executed};
 
-pub trait CommandExecutor<C: Command> {
-    async fn execute(
+use crate::error::PipelineError;
+
+
+// TODO: GAT?
+pub trait CommandExecutor<C: Command>: Send + Sync {
+    fn execute(
         &self,
         req: Request<CommandReady, C>,
-    ) -> PipelineResult<Request<Executed, C::Output>>;
+    ) -> impl std::future::Future<Output = Result<Request<Executed, C::Output>, PipelineError>> + Send;
 }
+
+
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right

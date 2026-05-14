@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Ok;
 use axum::Router;
 use infra::PgExecutor;
-use sqlx::{database, postgres::PgPoolOptions};
+use sqlx::{postgres::PgPoolOptions};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod routes;
