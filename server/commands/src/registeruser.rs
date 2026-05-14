@@ -4,6 +4,7 @@ use pipeline::{
     Command,
     request::Request,
     stages::{CommandReady, Validated},
+    primitives::{IkPub, IkPubEd, SpkPub, SpkPubSig, OtpkPub},
 };
 use uuid::Uuid;
 
@@ -12,6 +13,11 @@ pub struct RegisterUserCommand {
     pub username: Username,
     pub email: Email,
     pub password: PlainPassword,
+    pub ik_pub: IkPub,
+    pub ik_pub_ed: IkPubEd,
+    pub spk_pub: SpkPub,
+    pub spk_pub_sig: SpkPubSig,
+    pub otkps: Vec<OtpkPub>,
 }
 
 #[derive(Debug)]

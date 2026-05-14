@@ -3,6 +3,8 @@ pub mod engine;
 pub mod error;
 pub mod request;
 pub mod stages;
+pub mod primitives;
+
 
 pub trait Command {
     /// The type that the infra layer returns on success.

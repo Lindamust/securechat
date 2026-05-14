@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, types::chrono::{DateTime, Utc}};
 
 use commands::{CreatedUser, RegisterUserCommand, SendMessageCommand, SentMessage};
 
@@ -68,39 +68,9 @@ impl CommandExecutor<SendMessageCommand> for PgExecutor {
     ) -> PipelineResult<Request<Executed, SentMessage>> {
         let cmd = req.into_inner();
 
-        // Check recipient exists.
-        let exists: bool = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)",
-            cmd.recipient_id
-        )
-        .fetch_one(&self.pool)
-        .await?
-        .unwrap_or(false);
-
-        if !exists {
-            return Err(PipelineError::NotFound(format!(
-                "recipient {} does not exist",
-                cmd.recipient_id
-            )));
-        }
-
-        let row = sqlx::query!(
-            r#"
-            INSERT INTO messages (id, sender_id, recipient_id, content, created_at)
-            VALUES ($1, $2, $3, $4, NOW())
-            RETURNING id, created_at
-            "#,
-            Uuid::now_v7(),
-            cmd.sender_id,
-            cmd.recipient_id,
-            cmd.content.as_str(),
-        )
-        .fetch_one(&self.pool)
-        .await?;
-
         Ok(Request::new(SentMessage {
-            id: row.id,
-            created_at: row.created_at,
+            id: Uuid::now_v7(),
+            created_at: Utc::now(),
         }))
     }
 }
