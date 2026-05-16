@@ -1,10 +1,11 @@
-use domain::dto::RegisterInput;
+use domain::dto::{RegisterInput, RegisterResponse};
 use domain::models::{Email, PlainPassword, Username};
 use pipeline::{
     Command,
+    error::PipelineResult,
+    primitives::{IkPub, IkPubEd, OtpkPub, SpkPub, SpkPubSig},
     request::Request,
-    stages::{CommandReady, Validated},
-    primitives::{IkPub, IkPubEd, SpkPub, SpkPubSig, OtpkPub},
+    stages::{CommandReady, Executed, Validated},
 };
 use uuid::Uuid;
 
@@ -38,5 +39,20 @@ pub fn build_register_command(
         username: input.username,
         email: input.email,
         password: input.password,
+        ik_pub: input.ik_pub,
+        ik_pub_ed: input.ik_pub_ed,
+        spk_pub: input.spk_pub,
+        spk_pub_sig: input.spk_pub_sig,
+        otkps: input.otpks,
+    })
+}
+
+pub fn build_register_response(
+    req: Request<Executed, CreatedUser>,
+) -> PipelineResult<RegisterResponse> {
+    let user = req.into_inner();
+    Ok(RegisterResponse {
+        user_id: user.id,
+        username: user.username,
     })
 }

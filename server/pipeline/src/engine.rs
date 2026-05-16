@@ -1,9 +1,8 @@
-use std::{future::Future, marker::PhantomData, pin::Pin, sync::Arc};
+use std::{future::Future, marker::PhantomData, pin::Pin, sync::Arc, usize};
 
 use axum::{
     Json,
-    body::Body,
-    extract::{FromRequest, FromRequestParts, Request as AxumRequest},
+    extract::{FromRequestParts, Request as AxumRequest},
     handler::Handler,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -13,14 +12,14 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::{
     Command, CommandExecutor,
     auth::{AuthIdentity, Identity, into_authenticated},
-    error::{PipelineResult},
+    error::PipelineResult,
     request::Request,
     stages::{CommandReady, Dto, Executed, Validated},
 };
 
 pub struct Pipeline<A, B, C, D>
 where
-    C: Command
+    C: Command,
 {
     pub require_auth: bool,
     pub validate: fn(Request<Dto, A>) -> PipelineResult<Request<Validated, B>>,
@@ -107,17 +106,23 @@ where
 
     fn call(self, req: AxumRequest, state: Arc<Exec>) -> Self::Future {
         Box::pin(async move {
-            let mut parts = req.into_parts().0;
+            let (mut parts, body) = req.into_parts();
 
             let identity = match AuthIdentity::from_request_parts(&mut parts, &()).await {
                 Ok(AuthIdentity(id)) => id,
                 Err(e) => return e.into_response(),
             };
 
-            let body_req = AxumRequest::from_parts(parts, Body::empty());
-            let Json(dto) = match Json::<A>::from_request(body_req, &()).await {
-                Ok(j) => j,
-                Err(e) => return e.into_response(),
+            let bytes = match axum::body::to_bytes(body, usize::MAX).await {
+                Ok(b) => b,
+                Err(e) => return e.to_string().into_response(),
+            };
+
+            let dto: A = match serde_json::from_slice(&bytes) {
+                Ok(v) => v,
+                Err(e) => {
+                    return (StatusCode::BAD_REQUEST, format!("Invalid JSON: {e}")).into_response();
+                }
             };
 
             self.run(identity, dto, &*state).await

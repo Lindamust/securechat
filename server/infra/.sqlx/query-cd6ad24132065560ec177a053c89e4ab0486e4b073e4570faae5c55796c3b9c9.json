@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO users (username, email, password_hash, ik_pub, ik_pub_ed, spk_pub, spk_pub_sig, spk_uploaded_at)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING id, username\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "bytes32",
+            "kind": {
+              "Domain": "Bytea"
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "bytes32",
+            "kind": {
+              "Domain": "Bytea"
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "bytes32",
+            "kind": {
+              "Domain": "Bytea"
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "bytes64",
+            "kind": {
+              "Domain": "Bytea"
+            }
+          }
+        },
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "cd6ad24132065560ec177a053c89e4ab0486e4b073e4570faae5c55796c3b9c9"
+}

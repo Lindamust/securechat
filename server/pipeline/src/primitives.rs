@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 // Deserialize from hex, 64-characters -> 32-bytes
 // Serialize into hex, 32-bytes -> 128-characters
+// manually implement because serde lacks them :(
 #[derive(Clone, Copy, Debug)]
 pub struct Bytes32(pub [u8; 32]);
 
@@ -13,24 +14,31 @@ pub struct Bytes32(pub [u8; 32]);
 pub struct Bytes64(pub [u8; 64]);
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+#[serde(transparent)]
 pub struct IkPub(pub Bytes32);
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct IkPubEd(pub Bytes32);
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct SpkPub(pub Bytes32);
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct SpkPubSig(pub Bytes64);
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct SigData(pub Bytes64);
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct OtpkPub(pub Bytes32);
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct Nonce(pub Bytes32);
 
 impl Nonce {
@@ -39,10 +47,6 @@ impl Nonce {
         Self(Bytes32(random_bytes))
     }
 }
-
-
-
-/// IMPLS
 
 use hex::{decode_to_slice, encode};
 use serde::{Deserializer, Serializer, de::Visitor};
@@ -128,7 +132,10 @@ use sqlx::{
     error::BoxDynError,
     postgres::{PgArgumentBuffer, PgHasArrayType, PgTypeInfo, PgValueRef},
 };
-use std::{convert::{AsRef, TryFrom}, error::Error};
+use std::{
+    convert::{AsRef, TryFrom},
+    error::Error,
+};
 
 impl TryFrom<&[u8]> for Bytes32 {
     type Error = std::array::TryFromSliceError;
@@ -169,7 +176,10 @@ impl Type<Postgres> for Bytes32 {
 }
 
 impl Encode<'_, Postgres> for Bytes32 {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, Box<dyn Error + Send + Sync>> {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<IsNull, Box<dyn Error + Send + Sync>> {
         <&[u8] as Encode<Postgres>>::encode(self.0.as_slice(), buf)
     }
 }
@@ -215,7 +225,10 @@ impl Type<Postgres> for Bytes64 {
 }
 
 impl Encode<'_, Postgres> for Bytes64 {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, Box<dyn Error + Send + Sync + 'static>> {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<IsNull, Box<dyn Error + Send + Sync + 'static>> {
         <&[u8] as Encode<Postgres>>::encode(self.0.as_slice(), buf)
     }
 }

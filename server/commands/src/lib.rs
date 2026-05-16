@@ -1,7 +1,9 @@
 mod registeruser;
 mod sendmessage;
 
-pub use registeruser::{CreatedUser, RegisterUserCommand, build_register_command};
+pub use registeruser::{
+    CreatedUser, RegisterUserCommand, build_register_command, build_register_response,
+};
 pub use sendmessage::{SendMessageCommand, SentMessage, build_send_message_command};
 
 pub fn add(left: u64, right: u64) -> u64 {

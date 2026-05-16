@@ -23,7 +23,7 @@ impl<S: Stage, T> Request<S, T> {
     }
 
     /// stage transition
-    pub fn advance<A, B: Stage>(self, next: A) -> Request<B, A> {
+    pub fn advance<U, B: Stage>(self, next: U) -> Request<B, U> {
         Request::new(next)
     }
 
@@ -35,5 +35,24 @@ impl<S: Stage, T> Request<S, T> {
     /// Consume, return payload
     pub fn into_inner(self) -> T {
         self.payload
+    }
+
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Request<S, U> {
+        Request::new(f(self.into_inner()))
+    }
+
+    pub fn try_map<U, E>(self, f: impl FnOnce(T) -> Result<U, E>) -> Result<Request<S, U>, E> {
+        Ok(Request::new(f(self.into_inner())?))
+    }
+
+    pub fn advance_with<U, B: Stage>(self, f: impl FnOnce(T) -> U) -> Request<B, U> {
+        Request::new(f(self.into_inner()))
+    }
+
+    pub fn try_advance_with<U, B: Stage, E>(
+        self,
+        f: impl FnOnce(T) -> Result<U, E>,
+    ) -> Result<Request<B, U>, E> {
+        Ok(Request::new(f(self.into_inner())?))
     }
 }

@@ -1,9 +1,13 @@
+use super::decode;
 use crate::models::{Email, PlainPassword, Username};
-use serde::{Deserialize, Serialize, de::IntoDeserializer};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use pipeline::{
-    error::PipelineResult, primitives::{IkPub, IkPubEd, OtpkPub, SpkPub, SpkPubSig}, request::Request, stages::{Dto, Validated}
+    error::PipelineResult,
+    primitives::{IkPub, IkPubEd, OtpkPub, SpkPub, SpkPubSig},
+    request::Request,
+    stages::{Dto, Validated},
 };
 
 /// Raw inbound JSON for POST /register
@@ -32,29 +36,32 @@ pub struct RegisterInput {
     pub otpks: Vec<OtpkPub>,
 }
 
-impl RegisterDto {
-    pub fn validate(
-        self,
-        req: Request<Dto, Self>,
-    ) -> PipelineResult<Request<Validated, RegisterInput>> {
-        let otpks = self
+fn to_validate(dto: RegisterDto) -> PipelineResult<RegisterInput> {
+    Ok(RegisterInput {
+        username: Username::parse(dto.username)?,
+        email: Email::parse(dto.email)?,
+        password: PlainPassword::parse(dto.password)?,
+
+        ik_pub: decode(dto.ik_pub)?,
+        ik_pub_ed: decode(dto.ik_pub_ed)?,
+        spk_pub: decode(dto.spk_pub)?,
+        spk_pub_sig: decode(dto.spk_pub_sig)?,
+
+        otpks: dto
             .otpks
             .into_iter()
-            .map(|s| OtpkPub::deserialize(s.into_deserializer()))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(decode)
+            .collect::<Result<_, _>>()?,
+    })
+}
 
+trait RegDtoValidator {
+    fn validate(self) -> PipelineResult<Request<Validated, RegisterInput>>;
+}
 
-        let validated = RegisterInput {
-            username: Username::parse(self.username)?,
-            email: Email::parse(self.email)?,
-            password: PlainPassword::parse(self.password)?,
-            ik_pub: IkPub::deserialize(self.ik_pub.into_deserializer())?,
-            ik_pub_ed: IkPubEd::deserialize(self.ik_pub_ed.into_deserializer())?,
-            spk_pub: SpkPub::deserialize(self.spk_pub.into_deserializer())?,
-            spk_pub_sig: SpkPubSig::deserialize(self.spk_pub_sig.into_deserializer())?,
-            otpks
-        };
-        Ok(req.advance(validated))
+impl RegDtoValidator for Request<Dto, RegisterDto> {
+    fn validate(self) -> PipelineResult<Request<Validated, RegisterInput>> {
+        self.try_advance_with(to_validate)
     }
 }
 
@@ -62,18 +69,7 @@ impl RegisterDto {
 pub fn validate_register(
     req: Request<Dto, RegisterDto>,
 ) -> PipelineResult<Request<Validated, RegisterInput>> {
-    let dto = req.into_inner();
-    let validated = RegisterInput {
-        username: Username::parse(dto.username)?,
-        email: Email::parse(dto.email)?,
-        password: PlainPassword::parse(dto.password)?,
-        ik_pub: IkPub::deserialize(dto.ik_pub.into_deserializer())?,
-        ik_pub_ed: IkPubEd::deserialize(dto.ik_pub_ed.into_deserializer())?,
-        spk_pub: SpkPub::deserialize(dto.spk_pub.into_deserializer())?,
-        spk_pub_sig: SpkPubSig::deserialize(dto.spk_pub_sig.into_deserializer())?,
-        otpks: Vec::new().into()
-    };
-    Ok(Request::new(validated))
+    req.validate()
 }
 
 #[derive(Debug, Serialize)]

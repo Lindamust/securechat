@@ -6,11 +6,15 @@ members = ["pipeline",
 resolver = "3"
 
 [workspace.dependencies]
+# Global Allocator
+mimalloc = "0.1"
+
 #Web framework
 axum            = { version = "0.8.9", features = ["macros"] }
 tokio           = { version = "1.52.3",   features = ["full"] }
 tower           = "0.4"
-tower-http      = { version = "0.5", features = ["limit", "trace"] }
+tower-http      = { version = "0.5", features = ["limit", "trace", "request-id", "util"] }
+http = "1.4.0"
 
 # Auth
 jsonwebtoken    = "9"
@@ -29,10 +33,18 @@ sqlx            = { version = "0.8.6", features = ["runtime-tokio-rustls", "post
 # Utilities
 uuid            = { version = "1", features = ["v7", "serde", "std"] }
 chrono          = { version = "0.4", features = ["serde"] }
-thiserror       = "1"
-tracing         = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 axum-error-handler = "0.2.1"
 anyhow = "1.0.102"
 rand = "0.10.0"
 hex = "0.4.3"
+dotenvy = "0.15.7"
+thiserror       = "1"
+
+# tracing / telemetry
+tracing         = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+opentelemetry       = { version = "0.31", features = ["trace"] }
+opentelemetry_sdk   = { version = "0.31", features = ["rt-tokio", "trace"] }
+opentelemetry-otlp  = { version = "0.31", features = ["grpc-tonic", "trace"] }
+opentelemetry-semantic-conventions = "0.31"
+tracing-opentelemetry = "0.32"
