@@ -24,7 +24,7 @@ pub struct RegisterUserCommand {
 #[derive(Debug)]
 pub struct CreatedUser {
     pub id: Uuid,
-    pub username: String,
+    pub otpk_count: i64,
 }
 
 impl Command for RegisterUserCommand {
@@ -53,6 +53,6 @@ pub fn build_register_response(
     let user = req.into_inner();
     Ok(RegisterResponse {
         user_id: user.id,
-        username: user.username,
+        otpk_count: user.otpk_count,
     })
 }

@@ -75,5 +75,5 @@ pub fn validate_register(
 #[derive(Debug, Serialize)]
 pub struct RegisterResponse {
     pub user_id: Uuid,
-    pub username: String,
+    pub otpk_count: i64,
 }
