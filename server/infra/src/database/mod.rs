@@ -53,6 +53,12 @@ impl CommandExecutor<RegisterUserCommand> for PgExecutor {
                     cmd.username.as_str()
                 ))
             },
+            sqlx::Error::Database(dbe) if dbe.constraint() == Some("users_ik_pub_key") => {
+                PipelineError::Conflict("duplicate identity key".to_owned())
+            },
+            sqlx::Error::Database(dbe) if dbe.constraint() == Some("users_ik_pub_ed_key") => {
+                PipelineError::Conflict("duplicate identity key signature".to_owned())
+            }
             _ => PipelineError::Database(e),
         })?;
 
