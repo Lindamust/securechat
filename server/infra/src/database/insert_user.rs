@@ -21,7 +21,7 @@ impl CommandExecutor<RegisterUserCommand> for PgExecutor {
         let cmd = req.into_inner();
         let mut tx = self.pool.begin().await?;
 
-        // Hash password — use argon2 / bcrypt in production.
+        // TODO: Hash password — use argon2 / bcrypt in production.
         let password_hash = hash_password(cmd.password.as_str())?;
 
         let user_id = sqlx::query_scalar!(

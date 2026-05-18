@@ -11,6 +11,7 @@ use pipeline::{
 use uuid::Uuid;
 
 mod insert_user;
+mod insert_auth_challenge;
 
 /// Postgres executor
 #[derive(Clone)]

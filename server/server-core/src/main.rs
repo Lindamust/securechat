@@ -29,6 +29,8 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/api/register", post(routes::register_pipeline()))
+        .route("/auth/challenge", post(routes::auth_challenge_pipeline())
+    )
         .layer(RequestBodyLimitLayer::new(64 * 1_024))
         .layer(telemetry::http_trace_layer())
         .with_state(executor);

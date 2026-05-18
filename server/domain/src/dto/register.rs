@@ -1,5 +1,5 @@
 use super::decode;
-use crate::models::{Email, PlainPassword, Username};
+use crate::{dto::ValidateDtoExt, models::{Email, PlainPassword, Username}};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -36,7 +36,13 @@ pub struct RegisterInput {
     pub otpks: Vec<OtpkPub>,
 }
 
-fn to_validate(dto: RegisterDto) -> PipelineResult<RegisterInput> {
+#[derive(Debug, Serialize)]
+pub struct RegisterResponse {
+    pub user_id: Uuid,
+    pub otpk_count: i64,
+}
+
+fn validate_reg_dto(dto: RegisterDto) -> PipelineResult<RegisterInput> {
     Ok(RegisterInput {
         username: Username::parse(dto.username)?,
         email: Email::parse(dto.email)?,
@@ -55,25 +61,11 @@ fn to_validate(dto: RegisterDto) -> PipelineResult<RegisterInput> {
     })
 }
 
-trait RegDtoValidator {
-    fn validate(self) -> PipelineResult<Request<Validated, RegisterInput>>;
-}
-
-impl RegDtoValidator for Request<Dto, RegisterDto> {
-    fn validate(self) -> PipelineResult<Request<Validated, RegisterInput>> {
-        self.try_advance_with(to_validate)
-    }
-}
-
 // Ergonomic free function used by the handler.
 pub fn validate_register(
     req: Request<Dto, RegisterDto>,
 ) -> PipelineResult<Request<Validated, RegisterInput>> {
-    req.validate()
+    req.validate(validate_reg_dto)
 }
 
-#[derive(Debug, Serialize)]
-pub struct RegisterResponse {
-    pub user_id: Uuid,
-    pub otpk_count: i64,
-}
+
