@@ -28,7 +28,7 @@ validator       = { version = "0.18", features = ["derive"] }
 zxcvbn          = "3"           # password-strength estimation
 
 # Database (sqlx, postgres)
-sqlx            = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono"] }
+sqlx            = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "macros"] }
 
 # Utilities
 uuid            = { version = "1", features = ["v7", "serde", "std"] }

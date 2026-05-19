@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 sqlx.workspace = true
 uuid.workspace = true
+chrono.workspace = true
+tokio.workspace = true
 
 commands = { path = "../commands" }
 pipeline = { path = "../pipeline" }

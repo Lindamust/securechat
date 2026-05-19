@@ -18,13 +18,13 @@ pub struct RegisterUserCommand {
     pub ik_pub_ed: IkPubEd,
     pub spk_pub: SpkPub,
     pub spk_pub_sig: SpkPubSig,
-    pub otkps: Vec<OtpkPub>,
+    pub otpks: Vec<OtpkPub>,
 }
 
 #[derive(Debug)]
 pub struct CreatedUser {
     pub id: Uuid,
-    pub otpk_count: i64,
+    pub inserted: i64,
 }
 
 impl Command for RegisterUserCommand {
@@ -43,7 +43,7 @@ pub fn build_register_command(
         ik_pub_ed: input.ik_pub_ed,
         spk_pub: input.spk_pub,
         spk_pub_sig: input.spk_pub_sig,
-        otkps: input.otpks,
+        otpks: input.otpks,
     })
 }
 
@@ -52,7 +52,7 @@ pub fn build_register_response(
 ) -> PipelineResult<RegisterResponse> {
     let user = req.into_inner();
     Ok(RegisterResponse {
-        user_id: user.id,
-        otpk_count: user.otpk_count,
+        id: user.id,
+        inserted: user.inserted,
     })
 }

@@ -1,5 +1,8 @@
 use super::decode;
-use crate::{dto::ValidateDtoExt, models::{Email, PlainPassword, Username}};
+use crate::{
+    dto::ValidateDtoExt,
+    models::{Email, PlainPassword, Username},
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -38,8 +41,8 @@ pub struct RegisterInput {
 
 #[derive(Debug, Serialize)]
 pub struct RegisterResponse {
-    pub user_id: Uuid,
-    pub otpk_count: i64,
+    pub id: Uuid,
+    pub inserted: i64,
 }
 
 fn validate_reg_dto(dto: RegisterDto) -> PipelineResult<RegisterInput> {
@@ -67,5 +70,3 @@ pub fn validate_register(
 ) -> PipelineResult<Request<Validated, RegisterInput>> {
     req.validate(validate_reg_dto)
 }
-
-

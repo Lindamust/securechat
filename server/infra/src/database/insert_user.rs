@@ -1,17 +1,15 @@
-use sqlx::types::chrono::Utc;
+use super::PgExecutor;
+use crate::crypto::hash_password;
 
 use commands::{CreatedUser, RegisterUserCommand};
-
 use pipeline::{
     CommandExecutor,
     error::{PipelineError, PipelineResult},
-    primitives::Bytes32,
     request::Request,
     stages::{CommandReady, Executed},
 };
 
-use super::PgExecutor;
-use crate::crypto::hash_password;
+use chrono::Utc;
 
 impl CommandExecutor<RegisterUserCommand> for PgExecutor {
     async fn execute(
@@ -24,7 +22,7 @@ impl CommandExecutor<RegisterUserCommand> for PgExecutor {
         // TODO: Hash password — use argon2 / bcrypt in production.
         let password_hash = hash_password(cmd.password.as_str())?;
 
-        let user_id = sqlx::query_scalar!(
+        let id = sqlx::query_scalar!(
             r#"
             INSERT INTO users (username, email, password_hash, ik_pub, ik_pub_ed, spk_pub, spk_pub_sig, spk_uploaded_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -33,10 +31,10 @@ impl CommandExecutor<RegisterUserCommand> for PgExecutor {
             cmd.username.as_str(),
             cmd.email.as_str(),
             password_hash,
-            cmd.ik_pub.0.0 as _,
-            cmd.ik_pub_ed.0.0 as _,
-            cmd.spk_pub.0.0 as _,
-            cmd.spk_pub_sig.0.0 as _,
+            cmd.ik_pub as _,
+            cmd.ik_pub_ed as _,
+            cmd.spk_pub as _,
+            cmd.spk_pub_sig as _,
             Utc::now(),
         )
         .fetch_one(&mut *tx)
@@ -57,36 +55,21 @@ impl CommandExecutor<RegisterUserCommand> for PgExecutor {
             _ => PipelineError::Database(e),
         })?;
 
-        let otpk_vec_bytes: Vec<Bytes32> = cmd.otkps.iter().map(|otpk_pub| otpk_pub.0).collect();
-
-        sqlx::query!(
+        let inserted = sqlx::query!(
             r#"
             INSERT INTO otpks (user_id, otpk_pub)
             SELECT $1, x FROM UNNEST($2::bytea[]) as x
             ON CONFLICT DO NOTHING
             "#,
-            user_id,
-            otpk_vec_bytes as _,
+            id,
+            cmd.otpks as _,
         )
         .execute(&mut *tx)
-        .await?;
-
-        let count = sqlx::query_scalar!(
-            r#"
-            SELECT COUNT(*) as "count!"
-            FROM otpks
-            WHERE user_id = $1
-            "#,
-            user_id,
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        .await?
+        .rows_affected() as i64;
 
         tx.commit().await?;
 
-        Ok(Request::new(CreatedUser {
-            id: user_id,
-            otpk_count: count,
-        }))
+        Ok(Request::new(CreatedUser { id, inserted }))
     }
 }

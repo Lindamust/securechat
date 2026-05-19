@@ -17,14 +17,14 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS otpks (
     id          UUID        PRIMARY KEY DEFAULT uuidv7(),
     user_id     UUID        NOT NULL REFERENCES users(id),
-    otpk_pub    bytes32     NOT NULL
+    otpk_pub    bytes32     NOT NULL UNIQUE
 );
 
-CREATE TABLE IF NOT EXISTS auth_challeneges (
+CREATE TABLE IF NOT EXISTS auth_challenges (
     nonce           bytes32         PRIMARY KEY,
     user_id         UUID            NOT NULL REFERENCES users(id),
     expires_at      TIMESTAMPTZ     NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS otpk_user_idx ON otpks(user_id);
-CREATE INDEX IF NOT EXISTS auth_user_idx ON auth_challeneges(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS auth_user_idx ON auth_challenges(user_id);
