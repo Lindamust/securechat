@@ -6,7 +6,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use pipeline::{
+use crate::{
     error::PipelineResult,
     primitives::{IkPub, IkPubEd, OtpkPub, SpkPub, SpkPubSig},
     request::Request,
@@ -64,7 +64,7 @@ fn validate_reg_dto(dto: RegisterDto) -> PipelineResult<RegisterInput> {
     })
 }
 
-// Ergonomic free function used by the handler.
+/// Ergonomic free function used by the /api/register handler
 pub fn validate_register(
     req: Request<Dto, RegisterDto>,
 ) -> PipelineResult<Request<Validated, RegisterInput>> {

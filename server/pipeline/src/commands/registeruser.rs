@@ -1,6 +1,6 @@
-use domain::dto::{RegisterInput, RegisterResponse};
-use domain::models::{Email, PlainPassword, Username};
-use pipeline::{
+use crate::dto::{RegisterInput, RegisterResponse};
+use crate::models::{Email, PlainPassword, Username};
+use crate::{
     Command,
     error::PipelineResult,
     primitives::{IkPub, IkPubEd, OtpkPub, SpkPub, SpkPubSig},

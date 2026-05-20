@@ -1,6 +1,9 @@
 use std::marker::PhantomData;
 
-use crate::stages::{Raw, Stage};
+use crate::{
+    error::PipelineResult,
+    stages::{Raw, Stage},
+};
 
 pub struct Request<S: Stage, T> {
     pub(crate) payload: T,
@@ -14,7 +17,6 @@ impl<T> Request<Raw, T> {
 }
 
 impl<S: Stage, T> Request<S, T> {
-    /// Internal constructor: used only by the transition functions in this crate
     pub fn new(payload: T) -> Self {
         Self {
             payload,
@@ -55,4 +57,8 @@ impl<S: Stage, T> Request<S, T> {
     ) -> Result<Request<B, U>, E> {
         Ok(Request::new(f(self.into_inner())?))
     }
+}
+
+pub trait Transition<NextStage: Stage, Output> {
+    fn try_advance(self) -> PipelineResult<Request<NextStage, Output>>;
 }

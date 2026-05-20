@@ -1,5 +1,11 @@
-use commands::{AuthChallengeNonce, CreateAuthCommand, CreatedUser, RegisterUserCommand, build_auth_command, build_auth_response, build_register_command, build_register_response};
-use domain::dto::{AuthChallengeDto, AuthChallengeInput, AuthChallengeResponse, RegisterDto, RegisterInput, RegisterResponse, validate_auth_challenege, validate_register};
+use pipeline::commands::{
+    AuthChallengeNonce, CreateAuthCommand, CreatedUser, RegisterUserCommand, build_auth_command,
+    build_auth_response, build_register_command, build_register_response,
+};
+use pipeline::dto::{
+    AuthChallengeDto, AuthChallengeInput, AuthChallengeResponse, RegisterDto, RegisterInput,
+    RegisterResponse, validate_auth_challenege, validate_register,
+};
 use pipeline::{
     auth::Identity,
     engine::Pipeline,
@@ -19,7 +25,8 @@ pub fn register_pipeline()
     )
 }
 
-pub fn auth_challenge_pipeline() -> Pipeline<AuthChallengeDto, AuthChallengeInput, CreateAuthCommand, AuthChallengeResponse> {
+pub fn auth_challenge_pipeline()
+-> Pipeline<AuthChallengeDto, AuthChallengeInput, CreateAuthCommand, AuthChallengeResponse> {
     Pipeline::new(
         false,
         validate_auth_challenege,

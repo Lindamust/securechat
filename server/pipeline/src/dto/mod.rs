@@ -1,15 +1,15 @@
+mod auth_challenge;
 mod register;
 mod sendmessage;
-mod auth_challenge;
 mod signed_token;
 
-use pipeline::error::PipelineResult;
-use pipeline::request::Request;
-use pipeline::stages::Dto;
-use pipeline::stages::Validated;
+use crate::error::PipelineResult;
+use crate::request::Request;
+use crate::stages::Dto;
+use crate::stages::Validated;
+pub use auth_challenge::*;
 pub use register::*;
 pub use sendmessage::*;
-pub use auth_challenge::*;
 
 use serde::de::DeserializeOwned;
 use serde::de::IntoDeserializer;
@@ -21,12 +21,14 @@ fn decode<T: DeserializeOwned>(s: String) -> Result<T, DeserializeError> {
 
 trait ValidateDtoExt<T> {
     fn validate<U, F>(self, f: F) -> PipelineResult<Request<Validated, U>>
-    where F: FnOnce(T) -> PipelineResult<U>;
+    where
+        F: FnOnce(T) -> PipelineResult<U>;
 }
 
 impl<T> ValidateDtoExt<T> for Request<Dto, T> {
     fn validate<U, F>(self, f: F) -> PipelineResult<Request<Validated, U>>
-    where F: FnOnce(T) -> PipelineResult<U>
+    where
+        F: FnOnce(T) -> PipelineResult<U>,
     {
         self.try_advance_with(f)
     }

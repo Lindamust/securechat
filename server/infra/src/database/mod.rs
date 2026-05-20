@@ -1,6 +1,6 @@
 use sqlx::{PgPool, types::chrono::Utc};
 
-use commands::{SendMessageCommand, SentMessage};
+use pipeline::commands::{SendMessageCommand, SentMessage};
 
 use pipeline::{
     CommandExecutor,

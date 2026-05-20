@@ -1,7 +1,12 @@
-use pipeline::{error::PipelineResult, primitives::{IkPub, Nonce}, request::Request, stages::{Dto, Validated}};
+use crate::{
+    error::PipelineResult,
+    primitives::{IkPub, Nonce},
+    request::Request,
+    stages::{Dto, Validated},
+};
 use serde::{Deserialize, Serialize};
 
-use super::{decode, ValidateDtoExt};
+use super::{ValidateDtoExt, decode};
 
 #[derive(Debug, Deserialize)]
 pub struct AuthChallengeDto {
@@ -19,9 +24,13 @@ pub struct AuthChallengeResponse {
 }
 
 fn validate_auth_req(dto: AuthChallengeDto) -> PipelineResult<AuthChallengeInput> {
-    Ok(AuthChallengeInput { ik_pub: decode(dto.ik_pub)? })
+    Ok(AuthChallengeInput {
+        ik_pub: decode(dto.ik_pub)?,
+    })
 }
 
-pub fn validate_auth_challenege(req: Request<Dto, AuthChallengeDto>) -> PipelineResult<Request<Validated, AuthChallengeInput>> {
+pub fn validate_auth_challenege(
+    req: Request<Dto, AuthChallengeDto>,
+) -> PipelineResult<Request<Validated, AuthChallengeInput>> {
     req.validate(validate_auth_req)
 }

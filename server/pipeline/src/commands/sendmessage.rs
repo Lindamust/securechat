@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
-use domain::dto::SendMessageInput;
-use domain::models::MessageContent;
-use pipeline::{
+use crate::dto::SendMessageInput;
+use crate::models::MessageContent;
+use crate::{
     Command,
     request::Request,
     stages::{CommandReady, Validated},

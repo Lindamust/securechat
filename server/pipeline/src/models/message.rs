@@ -1,4 +1,4 @@
-use pipeline::error::PipelineError;
+use crate::error::PipelineError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,8 +1,5 @@
 [workspace]
-members = ["pipeline",
-    "pipeline/",
-    "commands/", "commands", "domain/", "domain", "infra/", "infra", "server-core/", "server-core",
-]
+members = ["pipeline", "pipeline/", "infra/", "infra", "server-core/", "server-core", "validation-core", "validation-derive"]
 resolver = "3"
 
 [workspace.dependencies]

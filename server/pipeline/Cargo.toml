@@ -14,3 +14,9 @@ axum-error-handler.workspace = true
 sqlx.workspace = true
 rand.workspace = true
 hex.workspace = true
+zxcvbn.workspace = true
+chrono.workspace = true
+
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"

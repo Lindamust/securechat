@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use commands::{AuthChallengeNonce, CreateAuthCommand};
+use pipeline::commands::{AuthChallengeNonce, CreateAuthCommand};
 use pipeline::{
     CommandExecutor,
     error::{PipelineError, PipelineResult},

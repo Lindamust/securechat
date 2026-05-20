@@ -264,16 +264,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "commands"
-version = "0.0.0"
-dependencies = [
- "chrono",
- "domain",
- "pipeline",
- "uuid",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -459,17 +449,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "domain"
-version = "0.0.0"
-dependencies = [
- "chrono",
- "pipeline",
- "serde",
- "uuid",
- "zxcvbn",
 ]
 
 [[package]]
@@ -1049,7 +1028,6 @@ name = "infra"
 version = "0.0.0"
 dependencies = [
  "chrono",
- "commands",
  "pipeline",
  "sqlx",
  "tokio",
@@ -1485,14 +1463,19 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "axum-error-handler",
+ "chrono",
  "hex",
  "jsonwebtoken",
+ "proc-macro2",
+ "quote",
  "rand 0.10.1",
  "serde",
  "serde_json",
  "sqlx",
+ "syn",
  "thiserror 1.0.69",
  "uuid",
+ "zxcvbn",
 ]
 
 [[package]]
@@ -1936,8 +1919,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
- "commands",
- "domain",
  "dotenvy",
  "http",
  "infra",
@@ -2770,6 +2751,19 @@ dependencies = [
  "js-sys",
  "serde_core",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "validation-core"
+version = "0.0.0"
+
+[[package]]
+name = "validation-derive"
+version = "0.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

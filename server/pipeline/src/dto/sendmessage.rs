@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::models::MessageContent;
 
-use pipeline::{
+use crate::{
     error::PipelineResult,
     request::Request,
     stages::{Dto, Validated},

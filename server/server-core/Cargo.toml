@@ -4,8 +4,6 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-commands = { path = "../commands" }
-domain = { path = "../domain" }
 infra = { path = "../infra" }
 pipeline = { path = "../pipeline" }
 

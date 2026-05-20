@@ -1,4 +1,4 @@
-use pipeline::error::PipelineError;
+use crate::error::PipelineError;
 
 /// Holds a password that has passed the strength check but has NOT yet been
 /// hashed. The `Drop` impl zeroes the allocation as a best-effort defence.

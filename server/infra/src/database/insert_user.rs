@@ -1,7 +1,7 @@
 use super::PgExecutor;
 use crate::crypto::hash_password;
 
-use commands::{CreatedUser, RegisterUserCommand};
+use pipeline::commands::{CreatedUser, RegisterUserCommand};
 use pipeline::{
     CommandExecutor,
     error::{PipelineError, PipelineResult},

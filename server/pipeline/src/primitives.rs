@@ -1,7 +1,12 @@
 use rand::random;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::IntoDeserializer};
 use sqlx::Type;
-use std::convert::{AsRef, TryFrom};
+use std::{
+    convert::{AsRef, TryFrom},
+    str::FromStr,
+};
+
+use crate::error::PipelineError;
 
 // Deserialize from hex, 64-characters -> 32-bytes
 // Serialize into hex, 32-bytes -> 128-characters
@@ -76,6 +81,16 @@ impl TryFrom<Vec<u8>> for Bytes32 {
 impl AsRef<[u8]> for Bytes32 {
     fn as_ref(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl FromStr for Bytes32 {
+    type Err = PipelineError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::deserialize(s.into_deserializer()).map_err(|_: serde::de::value::Error| {
+            PipelineError::Internal("Bytes32 FromStr fail".to_owned())
+        })
     }
 }
 

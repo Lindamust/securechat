@@ -9,5 +9,4 @@ uuid.workspace = true
 chrono.workspace = true
 tokio.workspace = true
 
-commands = { path = "../commands" }
 pipeline = { path = "../pipeline" }
