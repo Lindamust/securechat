@@ -53,3 +53,55 @@ impl Display for ValidationErrors {
 }
 
 impl std::error::Error for ValidationErrors {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn error_push_and_display() {
+        let mut errors = ValidationErrors::new();
+
+        errors.push(FieldError {
+            field: "email",
+            index: None,
+            message: "invalid".into(),
+        });
+
+        errors.push(FieldError {
+            field: "items",
+            index: Some(2),
+            message: "bad".into(),
+        });
+
+        let output = format!("{}", errors);
+
+        assert!(output.contains("email: invalid"));
+        assert!(output.contains("items[2]: bad"));
+    }
+
+    #[test]
+    fn error_extend() {
+        let mut a = ValidationErrors::new();
+        let mut b = ValidationErrors::new();
+
+        a.push(FieldError {
+            field: "a",
+            index: None,
+            message: "err_A".into(),
+        });
+        b.push(FieldError {
+            field: "b",
+            index: Some(3),
+            message: "err_B".into(),
+        });
+
+        a.extend(b);
+        assert_eq!(a.errors.len(), 2);
+
+        let output = format!("{}", a);
+
+        assert!(output.contains("a: err_A"));
+        assert!(output.contains("b[3]: err_B"));
+    }
+}
