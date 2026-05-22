@@ -1,3 +1,4 @@
+use axum::http::Result;
 use rand::random;
 use serde::{Deserialize, Serialize, de::IntoDeserializer};
 use sqlx::Type;
@@ -90,6 +91,16 @@ impl FromStr for Bytes32 {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::deserialize(s.into_deserializer()).map_err(|_: serde::de::value::Error| {
             PipelineError::Internal("Bytes32 FromStr fail".to_owned())
+        })
+    }
+}
+
+impl FromStr for Bytes64 {
+    type Err = PipelineError;
+
+    fn from_str(s : &str) -> Result<Self, Self::Err> {
+        Self::deserialize(s.into_deserializer()).map_err(|_: serde::de::value::Error| {
+            PipelineError::Internal("Bytes64 FromStr fail".to_owned())
         })
     }
 }

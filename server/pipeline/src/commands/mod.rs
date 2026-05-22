@@ -1,3 +1,5 @@
+// TODO: replace the entire command sub-module by GAT'ing an output type onto the input types
+
 mod registeruser;
 mod sendmessage;
 mod create_auth;

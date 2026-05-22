@@ -1,4 +1,4 @@
-use crate::dto::{RegisterInput, RegisterResponse};
+use crate::dto::{RegisterBody, RegisterResponse};
 use crate::models::{Email, PlainPassword, Username};
 use crate::{
     Command,
@@ -32,7 +32,7 @@ impl Command for RegisterUserCommand {
 }
 
 pub fn build_register_command(
-    req: Request<Validated, RegisterInput>,
+    req: Request<Validated, RegisterBody>,
 ) -> Request<CommandReady, RegisterUserCommand> {
     let input = req.into_inner();
     Request::new(RegisterUserCommand {

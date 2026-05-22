@@ -17,6 +17,7 @@ hex.workspace = true
 zxcvbn.workspace = true
 chrono.workspace = true
 
-syn = { version = "2", features = ["full"] }
-quote = "1"
-proc-macro2 = "1"
+nutype = { version = "0.4", features = ["serde"] }
+validator = { version = "0.18", features = ["derive"] }
+axum-valid = "0.20"
+

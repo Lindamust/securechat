@@ -1,43 +1,35 @@
-use crate::error::PipelineError;
 use serde::{Deserialize, Serialize};
+use nutype::nutype;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[nutype(
+    sanitize(trim),
+    validate(predicate = |s| validate_username(s).is_ok()),
+    derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, AsRef)
+)]
 pub struct Username(String);
 
-impl Username {
-    const MIN: usize = 3;
-    const MAX: usize = 32;
+#[derive(Debug, thiserror::error)]
+pub enum UsernameError {
+    #[error("username must be 3-32 characters")]
+    Length,
 
-    pub fn parse(raw: impl Into<String>) -> Result<Self, PipelineError> {
-        let s = raw.into().trim().to_owned();
+    #[error("username may only contain letters, digits, underscores, or hyphens")]
+    InvalidChars,
+}
 
-        if s.len() < Self::MIN || s.len() > Self::MAX {
-            return Err(PipelineError::Validation(format!(
-                "username must be {MIN}–{MAX} characters",
-                MIN = Self::MIN,
-                MAX = Self::MAX
-            )));
+fn validate_username(s: &str) -> Result<(), UsernameError> {
+        let s = raw.into().trim();
+
+        if s.len() < Username::MIN || s.len() > Username::MAX {
+            return Err(UsernameError::Length);
         }
 
         if !s
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
         {
-            return Err(PipelineError::Validation(
-                "username may only contain letters, digits, underscores, or hyphens".to_owned(),
-            ));
+            return Err(UsernameError::InvalidChars);
         }
 
-        Ok(Self(s))
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl AsRef<str> for Username {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
+        Ok()
 }

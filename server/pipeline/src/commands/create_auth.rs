@@ -1,4 +1,4 @@
-use crate::dto::{AuthChallengeInput, AuthChallengeResponse};
+use crate::dto::{AuthChallengeBody, AuthChallengeResponse};
 use crate::{
     Command,
     error::PipelineResult,
@@ -22,7 +22,7 @@ impl Command for CreateAuthCommand {
 }
 
 pub fn build_auth_command(
-    req: Request<Validated, AuthChallengeInput>,
+    req: Request<Validated, AuthChallengeBody>,
 ) -> Request<CommandReady, CreateAuthCommand> {
     let input = req.into_inner();
     Request::new(CreateAuthCommand {
