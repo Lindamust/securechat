@@ -1,7 +1,4 @@
-//! Production-grade tracing/telemetry layer for Axum.
-//!
 //! Usage:
-//!
 //!   let _guard = telemetry::init("my-service").await?;
 //!
 //!   let app = Router::new()
