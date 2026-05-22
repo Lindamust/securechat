@@ -1,11 +1,11 @@
 use std::{future::Future, marker::PhantomData, pin::Pin, sync::Arc};
 
 use axum::{
-    extract::FromRequest,
+    extract::{FromRequest, FromRequestParts, Request as AxumRequest},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
-    RequestExt,
+
 };
 use axum_valid::Valid;
 use serde::{de::DeserializeOwned, Serialize};
@@ -13,11 +13,11 @@ use validator::Validate;
 
 use super::{
     auth::{into_authenticated, AuthIdentity, Identity},
-    error::{PipelineError, PipelineResult},
+    error::PipelineResult,
     request::Request,
     stages::{CommandReady, Executed, Validated},
 };
-use crate::{commands::Command, CommandExecutor};
+use crate::{Command, CommandExecutor};
 
 
 pub struct Pipeline<I, C, O>
@@ -31,7 +31,7 @@ where
     _phantom: PhantomData<(I, C, O)>,
 }
 
-impl<I, C, O> Copy for Pipeline<I, C, I> where C: Command {}
+impl<I, C, O> Copy for Pipeline<I, C, O> where C: Command {}
 
 impl<I, C, O> Clone for Pipeline<I, C, O>
 where
@@ -60,15 +60,16 @@ where
     }
 }
 
-impl<I, C, O, Exec> Pipeline<I, C, O>
+impl<I, C, O> Pipeline<I, C, O>
 where
     I: Send + 'static,
     C: Command + Send + 'static,
     C::Output: Send + 'static,
     O: Serialize + Send + 'static,
-    Exec: CommandExecutor<C> + Clone + Send + Sync + 'static,
 {
-    pub async fn run(self, identity: Identity, input: I, executor: &Exec) -> Response
+    pub async fn run<Exec>(self, identity: Identity, input: I, executor: &Exec) -> Response
+    where 
+        Exec: CommandExecutor<C> + Clone + Send + Sync + 'static,
     {
         let result: PipelineResult<Response> = async {
             let auth_req = into_authenticated(input, identity, self.require_auth)?;
@@ -91,12 +92,12 @@ where
     }
 }
 
-impl<I, C, O, Exec> Handler<((),), Arc<Exec>> for Pipeline<I, C, O>
+impl<I, C, O, Exec> axum::handler::Handler<((),), Arc<Exec>> for Pipeline<I, C, O>
 where
-    I: DeserializeOwned + Validate + Send + 'static, // + Sync
-    C: Command + Send + 'static, // + Sync
-    C::Output: Send + 'static, // + Sync
-    O: Serialize + Send + 'static, // + Sync
+    I: DeserializeOwned + Validate + Send + 'static + Sync,
+    C: Command + Send + 'static + Sync,
+    C::Output: Send + 'static + Sync,
+    O: Serialize + Send + 'static + Sync,
     Exec: CommandExecutor<C> + Clone + Send + Sync + 'static,
 {
     type Future = Pin<Box<dyn Future<Output = Response> + Send>>;

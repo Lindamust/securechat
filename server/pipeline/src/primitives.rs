@@ -1,4 +1,3 @@
-use axum::http::Result;
 use rand::random;
 use serde::{Deserialize, Serialize, de::IntoDeserializer};
 use sqlx::Type;
@@ -114,10 +113,11 @@ impl TryFrom<&[u8]> for Bytes64 {
 }
 
 impl TryFrom<Vec<u8>> for Bytes64 {
-    type Error = Vec<u8>;
+    type Error = std::array::TryFromSliceError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self(value.try_into()?))
+        let arr: [u8; 64] = value.as_slice().try_into()?;
+        Ok(Self(arr))
     }
 }
 
