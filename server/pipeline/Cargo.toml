@@ -19,6 +19,5 @@ chrono.workspace = true
 
 nutype = { version = "0.7", features = ["serde", "derive_unchecked", "new_unchecked"] }
 validator = { version = "0.18", features = ["derive"] }
-axum-valid = "0.20"
-zeroize = { version = "1.8.2", features = ["zeroize_derive"] }
-
+zeroize = { version = "1.8.2", features = ["serde"] }
+argon2 = "0.5"

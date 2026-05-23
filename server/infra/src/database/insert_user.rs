@@ -1,5 +1,4 @@
 use super::PgExecutor;
-use crate::crypto::hash_password;
 
 use pipeline::commands::{CreatedUser, RegisterUserCommand};
 use pipeline::{
@@ -19,8 +18,7 @@ impl CommandExecutor<RegisterUserCommand> for PgExecutor {
         let cmd = req.into_inner();
         let mut tx = self.pool.begin().await?;
 
-        // TODO: Hash password — use argon2 / bcrypt in production.
-        let password_hash = hash_password(cmd.password.as_str())?;
+        let password_hash = cmd.password.hash();
 
         let id = sqlx::query_scalar!(
             r#"
@@ -30,7 +28,7 @@ impl CommandExecutor<RegisterUserCommand> for PgExecutor {
             "#,
             cmd.username.as_str(),
             cmd.email.as_str(),
-            password_hash,
+            password_hash.as_str(),
             cmd.ik_pub as _,
             cmd.ik_pub_ed as _,
             cmd.spk_pub as _,

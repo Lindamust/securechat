@@ -15,16 +15,22 @@ pub enum NameError {
 }
 
 fn validate_username(s: &str) -> Result<(), NameError> {
-        if s.len() < 3 || s.len() > 32 {
-            return Err(NameError::Length);
-        }
+    if s.len() < 3 || s.len() > 32 {
+        return Err(NameError::Length);
+    }
 
-        if !s
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
-        {
-            return Err(NameError::InvalidChars);
-        }
+    if !s
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(NameError::InvalidChars);
+    }
 
-        Ok(())
+    Ok(())
+}
+
+impl Username {
+    pub fn as_str(&self) -> &str {
+        self.as_ref()
+    }
 }

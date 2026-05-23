@@ -1,15 +1,9 @@
 use pipeline::commands::{
-    AuthChallengeNonce, CreateAuthCommand, CreatedUser, build_auth_command,
-    build_auth_response,
+    AuthChallengeNonce, CreateAuthCommand, CreatedUser, RegisterUserCommand, build_auth_command,
+    build_auth_response, build_register_command, build_register_response,
 };
 
-use pipeline::commands::{
-    build_register_command, RegisterUserCommand,
-};
-
-use pipeline::dto::{
-    AuthChallengeBody, AuthChallengeDto, AuthChallengeInput, AuthChallengeResponse, RegisterBody, RegisterResponse, validate_auth_challenege
-};
+use pipeline::dto::{AuthChallengeBody, AuthChallengeResponse, RegisterBody, RegisterResponse};
 
 use pipeline::{
     auth::Identity,
@@ -19,17 +13,17 @@ use pipeline::{
     stages::{CommandReady, Executed, Validated},
 };
 
-pub fn register_pipeline()
--> Pipeline<RegisterBody, RegisterUserCommand, RegisterResponse> {
+pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterUserCommand, RegisterResponse> {
     Pipeline::new(
         false,
-        |req: Request<Validated, RegisterInput>, _identity: &Identity| {
+        |req: Request<Validated, RegisterBody>,
+         _identity: &Identity|
+         -> PipelineResult<Request<CommandReady, RegisterUserCommand>> {
             Ok(build_register_command(req))
         },
         |req: Request<Executed, CreatedUser>| -> PipelineResult<RegisterResponse> {
-            let user: CreatedUser = req.into_inner();
-            Ok( RegisterResponse { id: user.id, inserted: user.inserted })
-        }
+            build_register_response(req)
+        },
     )
 }
 
@@ -37,12 +31,13 @@ pub fn auth_challenge_pipeline()
 -> Pipeline<AuthChallengeBody, CreateAuthCommand, AuthChallengeResponse> {
     Pipeline::new(
         false,
-        |req: Request<Validated, AuthChallengeInput>, _identity: &Identity| {
+        |req: Request<Validated, AuthChallengeBody>,
+         _identity: &Identity|
+         -> PipelineResult<Request<CommandReady, CreateAuthCommand>> {
             Ok(build_auth_command(req))
         },
         |req: Request<Executed, AuthChallengeNonce>| -> PipelineResult<AuthChallengeResponse> {
-            let auth_nonce = req.into_inner();
-            Ok( AuthChallengeResponse { nonce: auth_nonce.nonce })
-        }
+            build_auth_response(req)
+        },
     )
 }
