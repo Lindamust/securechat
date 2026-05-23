@@ -2906,19 +2906,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "validation-core"
-version = "0.0.0"
-
-[[package]]
-name = "validation-derive"
-version = "0.0.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
 name = "validator"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
