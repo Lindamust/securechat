@@ -5,7 +5,7 @@ use std::{path::Path, sync::Arc};
 
 use anyhow::Ok;
 use axum::{Router, routing::post};
-use infra::database::PgExecutor;
+use infra::database::Database;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::limit::RequestBodyLimitLayer;
 
@@ -25,12 +25,11 @@ async fn main() -> anyhow::Result<()> {
         .connect(&database_url)
         .await?;
 
-    let executor = Arc::new(PgExecutor { pool });
+    let executor = Arc::new(Database { pool });
 
     let app = Router::new()
         .route("/api/register", post(routes::register_pipeline()))
-        .route("/auth/challenge", post(routes::auth_challenge_pipeline())
-    )
+        .route("/auth/challenge", post(routes::auth_challenge_pipeline()))
         .layer(RequestBodyLimitLayer::new(64 * 1_024))
         .layer(telemetry::http_trace_layer())
         .with_state(executor);

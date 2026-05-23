@@ -6,7 +6,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{error::PipelineError, request::Request, stages::Authenticated};
+use crate::typestate::{error::PipelineError, request::Request, stages::Authenticated};
 
 /// JWT
 #[derive(Debug, Clone, Serialize, Deserialize)]

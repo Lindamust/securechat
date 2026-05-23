@@ -9,107 +9,61 @@ use axum::{
 use serde::{Serialize, de::DeserializeOwned};
 use validator::Validate;
 
-use super::{
-    auth::{AuthIdentity, Identity, into_authenticated},
-    error::PipelineResult,
-    request::Request,
-    stages::{CommandReady, Executed, Validated},
+use crate::{
+    extractors::{
+        auth::{AuthIdentity, Identity, into_authenticated},
+        valid::ValidatedJson,
+    },
+    traits::{CommandExecutor, InfraCommand, IntoCommand},
+    typestate::{error::PipelineResult, request::Request, stages::Executed},
 };
-use crate::{Command, CommandExecutor};
 
-pub struct Pipeline<I, C, O>
+// Route pipeline
+
+pub struct Pipeline<I, O>
 where
-    C: Command,
+    I: IntoCommand,
 {
     pub require_auth: bool,
-    pub build_cmd: fn(Request<Validated, I>, &Identity) -> PipelineResult<Request<CommandReady, C>>,
-    pub map_resp: fn(Request<Executed, C::Output>) -> PipelineResult<O>,
+    pub map_resp: fn(Request<Executed, <I::Command as InfraCommand>::Output>) -> PipelineResult<O>,
 
-    _phantom: PhantomData<(I, C, O)>,
+    _phantom: PhantomData<(I, O)>,
 }
 
-pub struct ValidatedJson<T>(pub T);
-
-impl<T, S> FromRequest<S> for ValidatedJson<T>
+impl<I, O> Pipeline<I, O>
 where
-    T: DeserializeOwned + Validate + Send,
-    S: Send + Sync,
-    Json<T>: FromRequest<S>,
-    <Json<T> as FromRequest<S>>::Rejection: IntoResponse,
-{
-    type Rejection = Response;
-
-    async fn from_request(req: AxumRequest, state: &S) -> Result<Self, Self::Rejection> {
-        let Json(value) = Json::<T>::from_request(req, state)
-            .await
-            .map_err(IntoResponse::into_response)?;
-
-        value.validate().map_err(|e| {
-            (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(serde_json::json!({ "error": e.to_owned() })),
-            )
-                .into_response()
-        })?;
-
-        Ok(ValidatedJson(value))
-    }
-}
-
-impl<I, C, O> Copy for Pipeline<I, C, O> where C: Command {}
-
-impl<I, C, O> Clone for Pipeline<I, C, O>
-where
-    C: Command,
-{
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<I, C, O> Pipeline<I, C, O>
-where
-    C: Command,
+    I: IntoCommand,
 {
     pub fn new(
         require_auth: bool,
-        build_cmd: fn(Request<Validated, I>, &Identity) -> PipelineResult<Request<CommandReady, C>>,
-        map_resp: fn(Request<Executed, C::Output>) -> PipelineResult<O>,
+        map_resp: fn(Request<Executed, <I::Command as InfraCommand>::Output>) -> PipelineResult<O>,
     ) -> Self {
         Self {
             require_auth,
-            build_cmd,
             map_resp,
             _phantom: PhantomData,
         }
     }
-}
 
-impl<I, C, O> Pipeline<I, C, O>
-where
-    I: Send + 'static,
-    C: Command + Send + 'static,
-    C::Output: Send + 'static,
-    O: Serialize + Send + 'static,
-{
     pub async fn run<Exec>(self, identity: Identity, input: I, executor: &Exec) -> Response
     where
-        Exec: CommandExecutor<C> + Clone + Send + Sync + 'static,
+        Exec: CommandExecutor<I::Command>,
+        O: Serialize,
     {
         let result: PipelineResult<Response> = async {
+            // Auth gate.
             let auth_req = into_authenticated(input, identity, self.require_auth)?;
             let (identity, input) = auth_req.into_inner();
 
-            let validated_req: Request<Validated, I> = Request::new(input);
+            // IntoCommand — zero cost for trivial case, explicit work for non-trivial.
+            let cmd = input.into_command(&identity);
 
-            let cmd_req = (self.build_cmd)(validated_req, &identity)?;
+            // The one impure step.
+            let executed_req = executor.execute(cmd).await?;
 
-            let executed_req = executor.execute(cmd_req).await?;
-
-            let body: O = (self.map_resp)(executed_req)?;
-
-            // TODO: sometimes the success return could be other than 200 OK
-            Ok((StatusCode::OK, Json(body)).into_response())
+            // Map response.
+            let body = (self.map_resp)(executed_req)?;
+            Ok((StatusCode::CREATED, Json(body)).into_response())
         }
         .await;
 
@@ -117,13 +71,27 @@ where
     }
 }
 
-impl<I, C, O, Exec> axum::handler::Handler<((),), Arc<Exec>> for Pipeline<I, C, O>
+impl<I, O> Copy for Pipeline<I, O> where I: IntoCommand {}
+
+impl<I, O> Clone for Pipeline<I, O>
 where
-    I: DeserializeOwned + Validate + Send + 'static + Sync,
-    C: Command + Send + 'static + Sync,
-    C::Output: Send + 'static + Sync,
+    I: IntoCommand,
+{
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+// Json Validation Extractor
+
+// Pipeline Axum Integration
+
+impl<I, O, Exec> axum::handler::Handler<((),), Arc<Exec>> for Pipeline<I, O>
+where
+    I: IntoCommand + DeserializeOwned + Validate + Send + 'static + Sync,
+    I::Command: InfraCommand + Send + 'static + Sync,
+    <I::Command as InfraCommand>::Output: Send + 'static + Sync,
     O: Serialize + Send + 'static + Sync,
-    Exec: CommandExecutor<C> + Clone + Send + Sync + 'static,
+    Exec: CommandExecutor<I::Command> + Clone + Send + Sync + 'static,
 {
     type Future = Pin<Box<dyn Future<Output = Response> + Send>>;
 

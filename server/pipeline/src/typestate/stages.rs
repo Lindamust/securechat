@@ -6,14 +6,8 @@ pub struct Raw;
 /// A valid JWT is present or the endpoint is Pub
 pub struct Authenticated;
 
-/// JSON body deserialised
-pub struct Dto;
-
 /// Domain invariants enforced -> domain types
 pub struct Validated;
-
-/// Strongly-typed `Command` for validated data; return type encoded
-pub struct CommandReady;
 
 /// Raw infra result
 pub struct Executed;
@@ -30,23 +24,19 @@ macro_rules! blanket_impl {
 blanket_impl!(Stage =>
     Raw,
     Authenticated,
-    Dto,
     Validated,
-    CommandReady,
     Executed,
     Responded,
 );
 
 mod private {
-    use super::{Authenticated, CommandReady, Dto, Executed, Raw, Responded, Validated};
+    use super::{Authenticated, Executed, Raw, Responded, Validated};
 
     pub trait Sealed {}
     blanket_impl!(Sealed =>
         Raw,
         Authenticated,
-        Dto,
         Validated,
-        CommandReady,
         Executed,
         Responded,
     );

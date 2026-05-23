@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{
+use super::{
     error::PipelineResult,
     stages::{Raw, Stage},
 };

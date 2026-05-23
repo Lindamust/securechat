@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::error::PipelineError;
+use crate::typestate::error::PipelineError;
 
 // Deserialize from hex, 64-characters -> 32-bytes
 // Serialize into hex, 32-bytes -> 128-characters
@@ -97,7 +97,7 @@ impl FromStr for Bytes32 {
 impl FromStr for Bytes64 {
     type Err = PipelineError;
 
-    fn from_str(s : &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::deserialize(s.into_deserializer()).map_err(|_: serde::de::value::Error| {
             PipelineError::Internal("Bytes64 FromStr fail".to_owned())
         })

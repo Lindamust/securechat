@@ -1,43 +1,33 @@
-use pipeline::commands::{
-    AuthChallengeNonce, CreateAuthCommand, CreatedUser, RegisterUserCommand, build_auth_command,
-    build_auth_response, build_register_command, build_register_response,
-};
-
-use pipeline::dto::{AuthChallengeBody, AuthChallengeResponse, RegisterBody, RegisterResponse};
-
 use pipeline::{
-    auth::Identity,
+    dto::{
+        AuthChallengeBody, AuthChallengeNonce, AuthChallengeResponse, CreatedUser, RegisterBody,
+        RegisterResponse,
+    },
     engine::Pipeline,
-    error::PipelineResult,
-    request::Request,
-    stages::{CommandReady, Executed, Validated},
+    typestate::{error::PipelineResult, request::Request, stages::Executed},
 };
 
-pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterUserCommand, RegisterResponse> {
+pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterResponse> {
     Pipeline::new(
         false,
-        |req: Request<Validated, RegisterBody>,
-         _identity: &Identity|
-         -> PipelineResult<Request<CommandReady, RegisterUserCommand>> {
-            Ok(build_register_command(req))
-        },
         |req: Request<Executed, CreatedUser>| -> PipelineResult<RegisterResponse> {
-            build_register_response(req)
+            let user = req.into_inner();
+            Ok(RegisterResponse {
+                id: user.id,
+                inserted: user.inserted,
+            })
         },
     )
 }
 
-pub fn auth_challenge_pipeline()
--> Pipeline<AuthChallengeBody, CreateAuthCommand, AuthChallengeResponse> {
+pub fn auth_challenge_pipeline() -> Pipeline<AuthChallengeBody, AuthChallengeResponse> {
     Pipeline::new(
         false,
-        |req: Request<Validated, AuthChallengeBody>,
-         _identity: &Identity|
-         -> PipelineResult<Request<CommandReady, CreateAuthCommand>> {
-            Ok(build_auth_command(req))
-        },
         |req: Request<Executed, AuthChallengeNonce>| -> PipelineResult<AuthChallengeResponse> {
-            build_auth_response(req)
+            let auth_nonce = req.into_inner();
+            Ok(AuthChallengeResponse {
+                nonce: auth_nonce.nonce,
+            })
         },
     )
 }

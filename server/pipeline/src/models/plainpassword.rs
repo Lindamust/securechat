@@ -30,6 +30,7 @@ impl PlainPassword {
 }
 */
 
+#[derive(Debug)]
 pub struct HashedPassword(String);
 
 impl HashedPassword {

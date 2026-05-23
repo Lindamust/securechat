@@ -1,40 +1,44 @@
 use chrono::{Duration, Utc};
-use pipeline::commands::{AuthChallengeNonce, CreateAuthCommand};
 use pipeline::{
-    CommandExecutor,
-    error::{PipelineError, PipelineResult},
+    dto::{AuthChallengeBody, AuthChallengeNonce},
     primitives::Nonce,
-    request::Request,
-    stages::{CommandReady, Executed},
+    traits::CommandExecutor,
+    typestate::{
+        error::{PipelineError, PipelineResult},
+        request::Request,
+        stages::Executed,
+    },
 };
 
-use crate::database::PgExecutor;
+use crate::database::Database;
 
-impl CommandExecutor<CreateAuthCommand> for PgExecutor {
-    async fn execute(
+impl CommandExecutor<AuthChallengeBody> for Database {
+    fn execute(
         &self,
-        req: Request<CommandReady, CreateAuthCommand>,
-    ) -> PipelineResult<Request<Executed, AuthChallengeNonce>> {
-        let nonce = Nonce::generate();
-        let ik_pub = req.into_inner().ik_pub;
-        let ttl = Utc::now() + Duration::seconds(30);
+        cmd: AuthChallengeBody,
+    ) -> impl Future<Output = PipelineResult<Request<Executed, AuthChallengeNonce>>> + Send {
+        async move {
+            let nonce = Nonce::generate();
+            let ik_pub = cmd.ik_pub;
+            let ttl = Utc::now() + Duration::seconds(30);
 
-        let nonce = sqlx::query_scalar!(
-            r#"
-            INSERT INTO auth_challenges (nonce, user_id, expires_at)
-            SELECT $1, users.id, $3
-            FROM users
-            WHERE users.ik_pub = $2
-            RETURNING nonce as "nonce: Nonce"
-            "#,
-            nonce as _,
-            ik_pub as _,
-            ttl,
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(PipelineError::Database)?;
+            let nonce = sqlx::query_scalar!(
+                r#"
+                        INSERT INTO auth_challenges (nonce, user_id, expires_at)
+                        SELECT $1, users.id, $3
+                        FROM users
+                        WHERE users.ik_pub = $2
+                        RETURNING nonce as "nonce: Nonce"
+                        "#,
+                nonce as _,
+                ik_pub as _,
+                ttl,
+            )
+            .fetch_one(&self.pool)
+            .await
+            .map_err(PipelineError::Database)?;
 
-        Ok(Request::new(AuthChallengeNonce { nonce }))
+            Ok(Request::new(AuthChallengeNonce { nonce }))
+        }
     }
 }
