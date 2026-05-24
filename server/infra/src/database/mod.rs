@@ -5,6 +5,6 @@ mod insert_user;
 
 /// Postgres executor
 #[derive(Clone)]
-pub struct Database {
+pub struct PgDatabase {
     pub pool: PgPool,
 }

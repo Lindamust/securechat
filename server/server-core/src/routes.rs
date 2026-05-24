@@ -1,3 +1,4 @@
+use infra::database::PgDatabase;
 use pipeline::{
     dto::{
         AuthChallengeBody, AuthChallengeNonce, AuthChallengeResponse, CreatedUser, RegisterBody,
@@ -7,7 +8,7 @@ use pipeline::{
     typestate::{error::PipelineResult, request::Request, stages::Executed},
 };
 
-pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterResponse> {
+pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterResponse, PgDatabase> {
     Pipeline::new(
         false,
         |req: Request<Executed, CreatedUser>| -> PipelineResult<RegisterResponse> {
@@ -20,7 +21,7 @@ pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterResponse> {
     )
 }
 
-pub fn auth_challenge_pipeline() -> Pipeline<AuthChallengeBody, AuthChallengeResponse> {
+pub fn auth_challenge_pipeline() -> Pipeline<AuthChallengeBody, AuthChallengeResponse, PgDatabase> {
     Pipeline::new(
         false,
         |req: Request<Executed, AuthChallengeNonce>| -> PipelineResult<AuthChallengeResponse> {

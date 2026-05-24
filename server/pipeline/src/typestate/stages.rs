@@ -9,6 +9,9 @@ pub struct Authenticated;
 /// Domain invariants enforced -> domain types
 pub struct Validated;
 
+/// Internal chain execution process
+pub(crate) struct Processing;
+
 /// Raw infra result
 pub struct Executed;
 
@@ -26,11 +29,12 @@ blanket_impl!(Stage =>
     Authenticated,
     Validated,
     Executed,
+    Processing,
     Responded,
 );
 
 mod private {
-    use super::{Authenticated, Executed, Raw, Responded, Validated};
+    use super::{Authenticated, Executed, Processing, Raw, Responded, Validated};
 
     pub trait Sealed {}
     blanket_impl!(Sealed =>
@@ -38,6 +42,7 @@ mod private {
         Authenticated,
         Validated,
         Executed,
+        Processing,
         Responded,
     );
 }

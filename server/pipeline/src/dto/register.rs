@@ -2,7 +2,6 @@ use crate::{
     models::{Email, HashedPassword, PlainPassword, Username},
     primitives::{IkPub, IkPubEd, OtpkPub, SpkPub, SpkPubSig},
     traits::{InfraCommand, IntoCommand},
-    typestate::{error::PipelineResult, request::Request, stages::Executed},
 };
 
 use serde::{Deserialize, Serialize};
@@ -69,14 +68,4 @@ impl IntoCommand for RegisterBody {
             otpks: self.otpks,
         }
     }
-}
-
-pub fn build_register_response(
-    req: Request<Executed, CreatedUser>,
-) -> PipelineResult<RegisterResponse> {
-    let user = req.into_inner();
-    Ok(RegisterResponse {
-        id: user.id,
-        inserted: user.inserted,
-    })
 }

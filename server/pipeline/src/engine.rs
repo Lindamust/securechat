@@ -6,13 +6,18 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use frunk::hlist::HList;
 use serde::{Serialize, de::DeserializeOwned};
 use validator::Validate;
 
 use crate::{
     extractors::{
-        auth::{AuthIdentity, Identity, into_authenticated},
+        auth::{AuthIdentity, Identity},
         valid::ValidatedJson,
+    },
+    process::{
+        chain::{ExecuteChain, StepChain},
+        hlist::IntoHList,
     },
     traits::{CommandExecutor, InfraCommand, IntoCommand},
     typestate::{error::PipelineResult, request::Request, stages::Executed},
@@ -20,103 +25,155 @@ use crate::{
 
 // Route pipeline
 
-pub struct Pipeline<I, O>
-where
-    I: IntoCommand,
-{
-    pub require_auth: bool,
-    pub map_resp: fn(Request<Executed, <I::Command as InfraCommand>::Output>) -> PipelineResult<O>,
+// ── RunFn — type-erased pipeline body ─────────────────────────────────────────
+//
+// Arc<dyn Fn> instead of Box<dyn Fn> so Pipeline can derive Clone cheaply.
+// The Arc is cloned once per request (one atomic refcount increment) — negligible.
 
-    _phantom: PhantomData<(I, O)>,
+type RunFn<I, Exec> = Arc<
+    dyn Fn(Identity, I, Arc<Exec>) -> Pin<Box<dyn Future<Output = PipelineResult<Response>> + Send>>
+        + Send
+        + Sync,
+>;
+
+// ── Pipeline ──────────────────────────────────────────────────────────────────
+
+pub struct Pipeline<I, O, Exec> {
+    require_auth: bool,
+    run_fn: RunFn<I, Exec>,
+    _phantom: PhantomData<fn() -> O>, // fn() -> O is Send+Sync regardless of O
 }
 
-impl<I, O> Pipeline<I, O>
+// Clone is cheap — just clones the Arc.
+impl<I, O, Exec> Clone for Pipeline<I, O, Exec> {
+    fn clone(&self) -> Self {
+        Self {
+            require_auth: self.require_auth,
+            run_fn: self.run_fn.clone(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<I, O, Exec> Pipeline<I, O, Exec>
 where
-    I: IntoCommand,
+    Exec: Send + Sync + 'static,
 {
+    // ── IntoCommand path ──────────────────────────────────────────────────────
+
     pub fn new(
         require_auth: bool,
         map_resp: fn(Request<Executed, <I::Command as InfraCommand>::Output>) -> PipelineResult<O>,
-    ) -> Self {
+    ) -> Self
+    where
+        I: IntoCommand + Send + 'static,
+        I::Command: Send + 'static,
+        <I::Command as InfraCommand>::Output: Send + 'static,
+        O: Serialize + Send + Sync + 'static,
+        Exec: CommandExecutor<I::Command>,
+    {
+        let run_fn = Arc::new(move |identity: Identity, input: I, executor: Arc<Exec>| {
+            Box::pin(async move {
+                let cmd = input.into_command(&identity);
+                let executed = executor.execute(cmd).await?;
+                let body = map_resp(executed)?;
+                Ok((StatusCode::CREATED, Json(body)).into_response())
+            }) as Pin<Box<dyn Future<Output = PipelineResult<Response>> + Send>>
+        });
+
         Self {
             require_auth,
-            map_resp,
+            run_fn,
             _phantom: PhantomData,
         }
     }
 
-    pub async fn run<Exec>(self, identity: Identity, input: I, executor: &Exec) -> Response
+    // ── StepChain path ────────────────────────────────────────────────────────
+    //
+    // Steps are ZST post compile -> Clone is free.
+    // The chain is cloned once per request
+    // (inside the Fn closure) at zero runtime cost.
+
+    pub fn new_chained<Steps, H, ChainOut, Idx>(
+        require_auth: bool,
+        chain: StepChain<Steps, Exec>,
+        map_resp: fn(Request<Executed, ChainOut>) -> PipelineResult<O>,
+    ) -> Self
     where
-        Exec: CommandExecutor<I::Command>,
-        O: Serialize,
+        I: IntoHList<Output = H> + Send + 'static,
+        H: HList + Send + 'static,
+        Steps: ExecuteChain<frunk::HCons<Identity, H>, Exec, Output = ChainOut>
+            + Clone
+            + Send
+            + Sync
+            + 'static,
+        ChainOut: Send + 'static,
+        O: Serialize + Send + Sync + 'static,
     {
-        let result: PipelineResult<Response> = async {
-            // Auth gate.
-            let auth_req = into_authenticated(input, identity, self.require_auth)?;
-            let (identity, input) = auth_req.into_inner();
+        let run_fn = Arc::new(move |identity: Identity, input: I, executor: Arc<Exec>| {
+            // Clone the chain — ZST steps make this free.
+            let chain = chain.clone();
+            Box::pin(async move {
+                let hlist = frunk::HCons {
+                    head: identity,
+                    tail: input.into_hlist(),
+                };
+                let output = chain.run(hlist, &*executor).await?;
+                let body = map_resp(Request::new(output))?;
+                Ok((StatusCode::CREATED, Json(body)).into_response())
+            }) as Pin<Box<dyn Future<Output = PipelineResult<Response>> + Send>>
+        });
 
-            // IntoCommand — zero cost for trivial case, explicit work for non-trivial.
-            let cmd = input.into_command(&identity);
-
-            // The one impure step.
-            let executed_req = executor.execute(cmd).await?;
-
-            // Map response.
-            let body = (self.map_resp)(executed_req)?;
-            Ok((StatusCode::CREATED, Json(body)).into_response())
+        Self {
+            require_auth,
+            run_fn,
+            _phantom: PhantomData,
         }
-        .await;
+    }
 
+    // ── Shared run ────────────────────────────────────────────────────────────
+
+    async fn run(self, identity: Identity, input: I, executor: Arc<Exec>) -> Response {
+        let result = (self.run_fn)(identity, input, executor).await;
         result.unwrap_or_else(IntoResponse::into_response)
     }
 }
 
-impl<I, O> Copy for Pipeline<I, O> where I: IntoCommand {}
+// ── Axum Handler impl ─────────────────────────────────────────────────────────
 
-impl<I, O> Clone for Pipeline<I, O>
+impl<I, O, Exec> axum::handler::Handler<((),), Arc<Exec>> for Pipeline<I, O, Exec>
 where
-    I: IntoCommand,
-{
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-// Json Validation Extractor
-
-// Pipeline Axum Integration
-
-impl<I, O, Exec> axum::handler::Handler<((),), Arc<Exec>> for Pipeline<I, O>
-where
-    I: IntoCommand + DeserializeOwned + Validate + Send + 'static + Sync,
-    I::Command: InfraCommand + Send + 'static + Sync,
-    <I::Command as InfraCommand>::Output: Send + 'static + Sync,
-    O: Serialize + Send + 'static + Sync,
-    Exec: CommandExecutor<I::Command> + Clone + Send + Sync + 'static,
+    I: DeserializeOwned + Validate + Send + 'static,
+    O: Send + Sync + 'static, // Sync required: PhantomData<O> in Pipeline
+    Exec: Send + Sync + 'static,
 {
     type Future = Pin<Box<dyn Future<Output = Response> + Send>>;
 
     fn call(self, req: AxumRequest, state: Arc<Exec>) -> Self::Future {
         Box::pin(async move {
-            // Split parts so we can run two extractors on the same request.
             let (mut parts, body) = req.into_parts();
 
-            // 1. Extract identity from headers
+            // Auth extraction — before body is consumed.
             let identity = match AuthIdentity::from_request_parts(&mut parts, &()).await {
                 Ok(AuthIdentity(id)) => id,
                 Err(e) => return e.into_response(),
             };
 
-            // 2. Extract + validate body via ValidatedJson<I>
-            //    nutype Deserialize runs: validator::Validate runs.
-            //    On failure: 422 with a structured error body.
-            let reassembled = axum::extract::Request::from_parts(parts, body);
+            // Fail fast on auth before parsing body.
+            if self.require_auth {
+                if let Err(e) = identity.require_authenticated() {
+                    return e.into_response();
+                }
+            }
+
+            let req_for_json = AxumRequest::from_parts(parts, body);
             let ValidatedJson(input) =
-                match ValidatedJson::<I>::from_request(reassembled, &()).await {
+                match ValidatedJson::<I>::from_request(req_for_json, &()).await {
                     Ok(v) => v,
-                    Err(e) => return e.into_response(),
+                    Err(e) => return e,
                 };
 
-            self.run(identity, input, &*state).await
+            self.run(identity, input, state).await
         })
     }
 }

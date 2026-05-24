@@ -10,9 +10,9 @@ use pipeline::{
     },
 };
 
-use crate::database::Database;
+use crate::database::PgDatabase;
 
-impl CommandExecutor<AuthChallengeBody> for Database {
+impl CommandExecutor<AuthChallengeBody> for PgDatabase {
     fn execute(
         &self,
         cmd: AuthChallengeBody,

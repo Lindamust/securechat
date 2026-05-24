@@ -5,7 +5,7 @@ use std::{path::Path, sync::Arc};
 
 use anyhow::Ok;
 use axum::{Router, routing::post};
-use infra::database::Database;
+use infra::database::PgDatabase;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::limit::RequestBodyLimitLayer;
 
@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
         .connect(&database_url)
         .await?;
 
-    let executor = Arc::new(Database { pool });
+    let executor = Arc::new(PgDatabase { pool });
 
     let app = Router::new()
         .route("/api/register", post(routes::register_pipeline()))

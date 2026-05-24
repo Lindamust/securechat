@@ -1,4 +1,4 @@
-use super::Database;
+use super::PgDatabase;
 
 use pipeline::{
     dto::{CreatedUser, RegisterUserCommand},
@@ -12,7 +12,7 @@ use pipeline::{
 
 use chrono::Utc;
 
-impl CommandExecutor<RegisterUserCommand> for Database {
+impl CommandExecutor<RegisterUserCommand> for PgDatabase {
     fn execute(
         &self,
         cmd: RegisterUserCommand,

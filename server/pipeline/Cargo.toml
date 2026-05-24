@@ -21,3 +21,4 @@ nutype = { version = "0.7", features = ["serde", "derive_unchecked", "new_unchec
 validator = { version = "0.18", features = ["derive"] }
 zeroize = { version = "1.8.2", features = ["serde"] }
 argon2 = "0.5"
+frunk = { version = "0.4" }
