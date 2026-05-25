@@ -111,7 +111,6 @@ where
         O: Serialize + Send + Sync + 'static,
     {
         let run_fn = Arc::new(move |identity: Identity, input: I, executor: Arc<Exec>| {
-            // Clone the chain — ZST steps make this free.
             let chain = chain.clone();
             Box::pin(async move {
                 let hlist = frunk::HCons {

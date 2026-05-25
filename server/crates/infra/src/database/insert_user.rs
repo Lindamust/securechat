@@ -1,6 +1,6 @@
 use super::PgDatabase;
 
-use pipeline::{
+use pipeline_core::{
     dto::{CreatedUser, RegisterUserCommand},
     traits::CommandExecutor,
     typestate::{

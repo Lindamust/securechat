@@ -1,11 +1,11 @@
 [package]
-name = "server-core"
+name = "app"
 version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-infra = { path = "../infra" }
-pipeline = { path = "../pipeline" }
+infra.workspace = true
+pipeline-core.workspace = true
 
 mimalloc.workspace = true
 http.workspace = true

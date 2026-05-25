@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use pipeline::{
+use pipeline_core::{
     dto::{AuthChallengeBody, AuthChallengeNonce},
     primitives::Nonce,
     traits::CommandExecutor,

@@ -1,41 +1,61 @@
 [workspace]
-members = ["pipeline", "pipeline/", "infra/", "infra", "server-core/", "server-core",]
+members = ["crates/pipeline-core", "crates/infra", "crates/app", "crates/pipeline-http", "crates/commands", "crates/domain"]
 resolver = "3"
 
 [workspace.dependencies]
+# Workspace Crates
+domain = { path = "crates/domain" }
+pipeline-core = { path = "crates/pipeline-core" }
+pipeline-http = { path = "crates/pipeline-http" }
+commands = { path = "crates/commands" }
+infra = { path = "crates/infra" }
+
 # Global Allocator
 mimalloc = "0.1"
 
-#Web framework
-axum            = { version = "0.8.9", features = ["macros"] }
-tokio           = { version = "1.52.3",   features = ["full"] }
-tower           = "0.4"
-tower-http      = { version = "0.5", features = ["limit", "trace", "request-id", "util"] }
+# Async Runtime
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "net", "time", "sync", "signal"] }
+
+# Web
+axum = { version = "0.8.9", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["limit", "trace", "request-id", "util"] }
 http = "1.4.0"
 
-# Auth
-jsonwebtoken    = "9"
-
 # Serialization
-serde           = { version = "1", features = ["derive"] }
-serde_json      = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 # Validation helpers
-validator       = { version = "0.18", features = ["derive"] }
-zxcvbn          = "3"           # password-strength estimation
+validator = { version = "0.18", features = ["derive"] }
+nutype = { version = "0.7", features = ["serde", "derive_unchecked", "new_unchecked"] }
+
+# Auth
+jsonwebtoken = "9"
+
+# Heterogenous List
+frunk = "0.4"
+
+# Password strength estimation
+zxcvbn = "3"
+
+# Hashing / Cryptography
+argon2 = "0.5"
+ed25519-dalek = "2.2.0"
 
 # Database (sqlx, postgres)
-sqlx            = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "macros"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "macros"] }
 
 # Utilities
-uuid            = { version = "1", features = ["v7", "serde", "std"] }
-chrono          = { version = "0.4", features = ["serde"] }
-axum-error-handler = "0.2.1"
+uuid = { version = "1", features = ["v7", "serde", "std"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1"
 anyhow = "1.0.102"
+axum-error-handler = "0.2.1"
 rand = "0.10.0"
 hex = "0.4.3"
 dotenvy = "0.15.7"
-thiserror       = "1"
+zeroize = { version = "1.8.2", features = ["serde"] }
 
 # tracing / telemetry
 tracing         = "0.1"

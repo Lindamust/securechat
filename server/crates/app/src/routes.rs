@@ -1,5 +1,5 @@
 use infra::database::PgDatabase;
-use pipeline::{
+use pipeline_core::{
     dto::{
         AuthChallengeBody, AuthChallengeNonce, AuthChallengeResponse, CreatedUser, RegisterBody,
         RegisterResponse,

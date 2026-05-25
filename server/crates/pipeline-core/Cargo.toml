@@ -1,5 +1,5 @@
 [package]
-name = "pipeline"
+name = "pipeline-core"
 version = "0.0.0"
 edition = "2024"
 
@@ -16,9 +16,8 @@ rand.workspace = true
 hex.workspace = true
 zxcvbn.workspace = true
 chrono.workspace = true
-
-nutype = { version = "0.7", features = ["serde", "derive_unchecked", "new_unchecked"] }
-validator = { version = "0.18", features = ["derive"] }
-zeroize = { version = "1.8.2", features = ["serde"] }
-argon2 = "0.5"
-frunk = { version = "0.4" }
+nutype.workspace = true
+validator.workspace = true
+frunk.workspace = true
+argon2.workspace = true
+zeroize.workspace = true

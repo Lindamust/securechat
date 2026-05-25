@@ -8,6 +8,6 @@ sqlx.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 tokio.workspace = true
+ed25519-dalek.workspace = true
 
-ed25519-dalek = "2.2.0"
-pipeline = { path = "../pipeline" }
+pipeline-core.workspace = true
