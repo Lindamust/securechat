@@ -1,7 +1,7 @@
-use pipeline_core::primitives::ReprBytes;
+use primitives::ReprBytes;
 
+use domain::models::{IkPub, Nonce, SigData};
 use ed25519_dalek::{Signature, VerifyingKey};
-use pipeline_core::primitives::{IkPub, Nonce, SigData};
 
 pub struct CryptoManager;
 

@@ -38,6 +38,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
+ "domain",
  "dotenvy",
  "http",
  "infra",
@@ -47,6 +48,7 @@ dependencies = [
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "pipeline-core",
+ "pipeline-http",
  "sqlx",
  "tokio",
  "tower 0.4.13",
@@ -151,37 +153,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "axum-err-handler-ctx"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63bc1e72c9c7900e802d4e9f9434f3012ec68495fcd3b4bd1f526075f5acfda4"
-dependencies = [
- "axum",
- "serde_json",
-]
-
-[[package]]
-name = "axum-err-handler-macro"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1962d3da3d27921ee8c1e6ab56ad0f5231adde8f1b7edfedd2faecf3b0471c2"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
-name = "axum-error-handler"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "562dd4dfe1eeb433149be0c1fd5e2cbeec7fc0a258ad6706393f125aeba2c65c"
-dependencies = [
- "axum-err-handler-ctx",
- "axum-err-handler-macro",
 ]
 
 [[package]]
@@ -307,10 +278,6 @@ dependencies = [
  "wasm-bindgen",
  "windows-link",
 ]
-
-[[package]]
-name = "commands"
-version = "0.0.0"
 
 [[package]]
 name = "concurrent-queue"
@@ -539,6 +506,21 @@ dependencies = [
 [[package]]
 name = "domain"
 version = "0.0.0"
+dependencies = [
+ "argon2",
+ "nutype",
+ "pipeline-core",
+ "pipeline-http",
+ "primitives",
+ "rand 0.10.1",
+ "serde",
+ "sqlx",
+ "thiserror 1.0.69",
+ "uuid",
+ "validator",
+ "zeroize",
+ "zxcvbn",
+]
 
 [[package]]
 name = "dotenvy"
@@ -592,7 +574,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1213,8 +1195,11 @@ name = "infra"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "domain",
  "ed25519-dalek",
  "pipeline-core",
+ "pipeline-http",
+ "primitives",
  "sqlx",
  "tokio",
  "uuid",
@@ -1703,28 +1688,28 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 name = "pipeline-core"
 version = "0.0.0"
 dependencies = [
- "argon2",
- "axum",
- "axum-error-handler",
  "chrono",
  "frunk",
- "hex",
- "jsonwebtoken",
- "nutype",
- "rand 0.10.1",
  "serde",
- "serde_json",
- "sqlx",
  "thiserror 1.0.69",
  "uuid",
- "validator",
- "zeroize",
- "zxcvbn",
 ]
 
 [[package]]
 name = "pipeline-http"
 version = "0.0.0"
+dependencies = [
+ "axum",
+ "frunk",
+ "jsonwebtoken",
+ "pipeline-core",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "uuid",
+ "validator",
+]
 
 [[package]]
 name = "pkcs1"
@@ -1791,6 +1776,15 @@ checksum = "479ca8adacdd7ce8f1fb39ce9ecccbfe93a3f1344b3d0d97f20bc0196208f62b"
 dependencies = [
  "proc-macro2",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "primitives"
+version = "0.0.0"
+dependencies = [
+ "hex",
+ "serde",
+ "sqlx",
 ]
 
 [[package]]

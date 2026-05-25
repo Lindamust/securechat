@@ -4,3 +4,14 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
+pipeline-core.workspace = true
+
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+validator.workspace = true
+jsonwebtoken.workspace = true
+frunk.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+tokio.workspace = true

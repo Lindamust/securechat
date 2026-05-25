@@ -1,13 +1,13 @@
 [workspace]
-members = ["crates/pipeline-core", "crates/infra", "crates/app", "crates/pipeline-http", "crates/commands", "crates/domain"]
+members = ["crates/pipeline-core", "crates/infra", "crates/app", "crates/pipeline-http", "crates/domain", "crates/primitives"]
 resolver = "3"
 
 [workspace.dependencies]
 # Workspace Crates
+primitives = { path = "crates/primitives" }
 domain = { path = "crates/domain" }
 pipeline-core = { path = "crates/pipeline-core" }
 pipeline-http = { path = "crates/pipeline-http" }
-commands = { path = "crates/commands" }
 infra = { path = "crates/infra" }
 
 # Global Allocator
@@ -34,7 +34,8 @@ nutype = { version = "0.7", features = ["serde", "derive_unchecked", "new_unchec
 jsonwebtoken = "9"
 
 # Heterogenous List
-frunk = "0.4"
+frunk_core = "0.4.4"
+frunk = "0.4.4"
 
 # Password strength estimation
 zxcvbn = "3"

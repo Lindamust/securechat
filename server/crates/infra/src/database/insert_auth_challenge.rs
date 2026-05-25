@@ -1,22 +1,17 @@
 use chrono::{Duration, Utc};
-use pipeline_core::{
-    dto::{AuthChallengeBody, AuthChallengeNonce},
-    primitives::Nonce,
-    traits::CommandExecutor,
-    typestate::{
-        error::{PipelineError, PipelineResult},
-        request::Request,
-        stages::Executed,
-    },
-};
+use domain::dto::{AuthChallengeBody, InsertedNonce};
+use domain::models::Nonce;
+use pipeline_core::{request::Request, stages::Executed};
+use pipeline_http::error::HttpResult;
+use pipeline_http::traits::CommandExecutor;
 
-use crate::database::PgDatabase;
+use crate::database::{PgDatabase, db_err};
 
 impl CommandExecutor<AuthChallengeBody> for PgDatabase {
     fn execute(
         &self,
         cmd: AuthChallengeBody,
-    ) -> impl Future<Output = PipelineResult<Request<Executed, AuthChallengeNonce>>> + Send {
+    ) -> impl Future<Output = HttpResult<Request<Executed, InsertedNonce>>> + Send {
         async move {
             let nonce = Nonce::generate();
             let ik_pub = cmd.ik_pub;
@@ -36,9 +31,9 @@ impl CommandExecutor<AuthChallengeBody> for PgDatabase {
             )
             .fetch_one(&self.pool)
             .await
-            .map_err(PipelineError::Database)?;
+            .map_err(db_err)?;
 
-            Ok(Request::new(AuthChallengeNonce { nonce }))
+            Ok(Request::wrap(InsertedNonce { nonce }))
         }
     }
 }

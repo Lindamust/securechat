@@ -1,14 +1,14 @@
+use crate::database::db_err;
+
 use super::PgDatabase;
 
+use domain::dto::{CreatedUser, RegisterUserCommand};
 use pipeline_core::{
-    dto::{CreatedUser, RegisterUserCommand},
-    traits::CommandExecutor,
-    typestate::{
-        error::{PipelineError, PipelineResult},
-        request::Request,
-        stages::Executed,
-    },
+    error::{PipelineError, PipelineResult},
+    request::Request,
+    stages::Executed,
 };
+use pipeline_http::{error::HttpResult, traits::CommandExecutor};
 
 use chrono::Utc;
 
@@ -16,9 +16,9 @@ impl CommandExecutor<RegisterUserCommand> for PgDatabase {
     fn execute(
         &self,
         cmd: RegisterUserCommand,
-    ) -> impl Future<Output = PipelineResult<Request<Executed, CreatedUser>>> + Send {
+    ) -> impl Future<Output = HttpResult<Request<Executed, CreatedUser>>> + Send {
         async move {
-            let mut tx = self.pool.begin().await?;
+            let mut tx = self.pool.begin().await.map_err(db_err)?;
 
             let id = sqlx::query_scalar!(
                         r#"
@@ -50,7 +50,7 @@ impl CommandExecutor<RegisterUserCommand> for PgDatabase {
                         sqlx::Error::Database(dbe) if dbe.constraint() == Some("users_ik_pub_ed_key") => {
                             PipelineError::Conflict("duplicate identity key signature".to_owned())
                         }
-                        _ => PipelineError::Database(e),
+                        _ => db_err(e),
                     })?;
 
             let inserted = sqlx::query!(
@@ -63,12 +63,13 @@ impl CommandExecutor<RegisterUserCommand> for PgDatabase {
                 cmd.otpks as _,
             )
             .execute(&mut *tx)
-            .await?
+            .await
+            .map_err(db_err)?
             .rows_affected() as i64;
 
-            tx.commit().await?;
+            tx.commit().await.map_err(db_err)?;
 
-            Ok(Request::new(CreatedUser { id, inserted }))
+            Ok(Request::wrap(CreatedUser { id, inserted }))
         }
     }
 }

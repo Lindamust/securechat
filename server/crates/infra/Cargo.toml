@@ -11,3 +11,6 @@ tokio.workspace = true
 ed25519-dalek.workspace = true
 
 pipeline-core.workspace = true
+pipeline-http.workspace = true
+primitives.workspace = true
+domain.workspace = true

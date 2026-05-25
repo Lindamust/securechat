@@ -1,12 +1,10 @@
-use infra::database::PgDatabase;
-use pipeline_core::{
-    dto::{
-        AuthChallengeBody, AuthChallengeNonce, AuthChallengeResponse, CreatedUser, RegisterBody,
-        RegisterResponse,
-    },
-    engine::Pipeline,
-    typestate::{error::PipelineResult, request::Request, stages::Executed},
+use domain::dto::{
+    AuthChallengeBody, AuthChallengeResponse, CreatedUser, InsertedNonce, RegisterBody,
+    RegisterResponse,
 };
+use infra::database::PgDatabase;
+use pipeline_core::{error::PipelineResult, request::Request, stages::Executed};
+use pipeline_http::engine::Pipeline;
 
 pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterResponse, PgDatabase> {
     Pipeline::new(
@@ -24,7 +22,7 @@ pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterResponse, PgDatabas
 pub fn auth_challenge_pipeline() -> Pipeline<AuthChallengeBody, AuthChallengeResponse, PgDatabase> {
     Pipeline::new(
         false,
-        |req: Request<Executed, AuthChallengeNonce>| -> PipelineResult<AuthChallengeResponse> {
+        |req: Request<Executed, InsertedNonce>| -> PipelineResult<AuthChallengeResponse> {
             let auth_nonce = req.into_inner();
             Ok(AuthChallengeResponse {
                 nonce: auth_nonce.nonce,
