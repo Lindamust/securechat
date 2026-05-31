@@ -1,0 +1,9 @@
+[package]
+name = "primitives"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+sqlx = { version = "0.8.6", features = ["postgres", "macros"] }
+serde.workspace = true
+hex.workspace = true
