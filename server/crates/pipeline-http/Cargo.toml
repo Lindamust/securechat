@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 pipeline-core.workspace = true
+domain.workspace = true
 
 axum.workspace = true
 serde.workspace = true

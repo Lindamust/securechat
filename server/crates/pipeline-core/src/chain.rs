@@ -47,7 +47,8 @@ where
     A: AsyncStep + Send,
     H: HList + Sculptor<A::Needs, Idx> + Send,
     Exec: ExecutorFor<A> + ?Sized + Sync,
-    B: ExecuteChain<HCons<A::Provides, H>, Exec> + Send,
+    B: ExecuteChain<HCons<A::Provides, H::Remainder>, Exec> + Send,
+    <H as Sculptor<<A as AsyncStep>::Needs, Idx>>::Remainder: Send,
 {
     type Output = B::Output;
 

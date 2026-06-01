@@ -1,6 +1,4 @@
-use crate::models::{IkPub, Nonce};
-
-use pipeline_http::traits::{InfraCommand, IntoCommand};
+use crate::models::{IkPub, NonceKey};
 
 use serde::{Deserialize, Serialize};
 use validator::Validate;
@@ -14,25 +12,12 @@ pub struct AuthChallengeBody {
 
 #[derive(Debug, Serialize)]
 pub struct AuthChallengeResponse {
-    pub nonce: Nonce,
+    pub nonce: NonceKey,
 }
 
 // Infra layer return type
 
 #[derive(Debug)]
 pub struct InsertedNonce {
-    pub nonce: Nonce,
-}
-
-// Request<Validated, I> ---> Command ---> Request<Executed, O>
-
-impl InfraCommand for AuthChallengeBody {
-    type Output = InsertedNonce;
-}
-
-impl IntoCommand for AuthChallengeBody {
-    type Command = Self;
-    fn into_command(self, _idenity: &pipeline_http::extractors::auth::Identity) -> Self::Command {
-        self
-    }
+    pub nonce: NonceKey,
 }

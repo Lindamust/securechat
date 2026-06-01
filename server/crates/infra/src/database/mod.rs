@@ -4,6 +4,8 @@ use sqlx::PgPool;
 mod insert_auth_challenge;
 mod insert_user;
 
+pub use insert_user::InsertsUser;
+
 /// Postgres executor
 #[derive(Clone)]
 pub struct PgDatabase {

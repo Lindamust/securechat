@@ -1,5 +1,5 @@
 use domain::dto::{
-    AuthChallengeBody, AuthChallengeResponse, CreatedUser, InsertedNonce, RegisterBody,
+    AuthChallengeBody, AuthChallengeResponse, InsertedNonce, InsertedUser, RegisterBody,
     RegisterResponse,
 };
 use infra::database::PgDatabase;
@@ -9,11 +9,11 @@ use pipeline_http::engine::Pipeline;
 pub fn register_pipeline() -> Pipeline<RegisterBody, RegisterResponse, PgDatabase> {
     Pipeline::new(
         false,
-        |req: Request<Executed, CreatedUser>| -> PipelineResult<RegisterResponse> {
+        |req: Request<Executed, InsertedUser>| -> PipelineResult<RegisterResponse> {
             let user = req.into_inner();
             Ok(RegisterResponse {
                 id: user.id,
-                inserted: user.inserted,
+                inserted: user.inserted_otpks,
             })
         },
     )
