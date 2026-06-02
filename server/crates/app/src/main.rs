@@ -1,3 +1,4 @@
+#[allow(unused)]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
@@ -10,6 +11,7 @@ use sqlx::postgres::PgPoolOptions;
 use tower_http::limit::RequestBodyLimitLayer;
 
 mod routes;
+mod steps;
 mod telemetry;
 
 #[tokio::main]

@@ -38,6 +38,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
+ "chrono",
  "domain",
  "dotenvy",
  "http",
@@ -508,9 +509,8 @@ name = "domain"
 version = "0.0.0"
 dependencies = [
  "argon2",
+ "chrono",
  "nutype",
- "pipeline-core",
- "pipeline-http",
  "primitives",
  "rand 0.10.1",
  "serde",
@@ -1689,6 +1689,7 @@ name = "pipeline-core"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "domain",
  "frunk",
  "serde",
  "thiserror 1.0.69",
@@ -1700,6 +1701,7 @@ name = "pipeline-http"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "domain",
  "frunk",
  "jsonwebtoken",
  "pipeline-core",

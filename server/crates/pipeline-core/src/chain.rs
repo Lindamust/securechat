@@ -28,7 +28,7 @@ pub trait ExecuteChain<H, Exec: ?Sized> {
     ) -> impl Future<Output = PipelineResult<Self::Output>> + Send;
 }
 
-/// Base case — empty chain, returns context unchanged.
+/// Base case: empty chain, returns context unchanged.
 impl<H: HList + Send, Exec: ?Sized> ExecuteChain<H, Exec> for HNil {
     type Output = H;
 
@@ -41,13 +41,14 @@ impl<H: HList + Send, Exec: ?Sized> ExecuteChain<H, Exec> for HNil {
     }
 }
 
-/// Recursive case — run A, feed extended HList into B.
+
+/// Recursive case: run A, feed extended HList into B.
 impl<H, Idx, A, B, Exec> ExecuteChain<H, Exec> for Then<A, B, Idx>
 where
     A: AsyncStep + Send,
-    H: HList + Sculptor<A::Needs, Idx> + Send,
+    H: HList + Sculptor<A::Needs, Idx, Remainder = H> + Send,
     Exec: ExecutorFor<A> + ?Sized + Sync,
-    B: ExecuteChain<HCons<A::Provides, H>, Exec> + Send,
+    B: ExecuteChain<HCons<A::Provides, H::Remainder>, Exec> + Send,
 {
     type Output = B::Output;
 

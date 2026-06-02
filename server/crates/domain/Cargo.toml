@@ -5,10 +5,9 @@ edition = "2024"
 
 [dependencies]
 primitives.workspace = true
-pipeline-http.workspace = true
-pipeline-core.workspace = true
 
 serde.workspace = true
+chrono.workspace = true
 sqlx = { version = "0.8.6", features = ["postgres", "macros"] }
 rand.workspace = true
 nutype.workspace = true

@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
+domain.workspace = true
 
 frunk.workspace = true
 serde.workspace = true

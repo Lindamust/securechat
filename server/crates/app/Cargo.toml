@@ -17,6 +17,7 @@ opentelemetry-otlp.workspace = true
 opentelemetry-semantic-conventions.workspace = true
 tracing-opentelemetry.workspace = true
 
+chrono.workspace = true
 tokio.workspace = true
 axum.workspace = true
 sqlx.workspace = true

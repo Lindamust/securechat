@@ -32,12 +32,12 @@ pub struct SigData(pub Bytes64);
 #[sqlx(transparent)]
 pub struct OtpkPub(pub Bytes32);
 
-#[derive(Serialize, Deserialize, Debug, Type)]
+#[derive(Serialize, Deserialize, Debug, Type, Clone)]
 #[serde(transparent)]
 #[sqlx(transparent)]
-pub struct Nonce(pub Bytes32);
+pub struct NonceKey(pub Bytes32);
 
-impl Nonce {
+impl NonceKey {
     pub fn generate() -> Self {
         let random_bytes: [u8; 32] = rand::random();
         Self(Bytes32(random_bytes))
@@ -51,7 +51,7 @@ impl_repr_bytes!(
     SpkPubSig<64>,
     SigData<64>,
     OtpkPub<32>,
-    Nonce<32>,
+    NonceKey<32>,
 );
 
 impl_from_vec!(
@@ -61,5 +61,5 @@ impl_from_vec!(
     (SpkPubSig, Bytes64),
     (SigData, Bytes64),
     (OtpkPub, Bytes32),
-    (Nonce, Bytes32),
+    (NonceKey, Bytes32),
 );
