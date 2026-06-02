@@ -13,7 +13,7 @@ impl PureStep for GenerateNonce {
     fn run<H, Idx>(
         self,
         ctx: H,
-    ) -> pipeline_core::error::PipelineResult<pipeline_core::HCons<Self::Provides, H::Remainder>>
+    ) -> pipeline_core::error::PipelineResult<pipeline_core::HCons<Self::Provides, Self::Remainder>>
     where
         H: pipeline_core::Sculptor<Self::Needs, Idx>,
     {
