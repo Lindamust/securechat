@@ -13,12 +13,10 @@ impl PureStep for GenerateNonce {
     fn run<H, Idx>(
         self,
         ctx: H,
-    ) -> pipeline_core::error::PipelineResult<pipeline_core::HCons<Self::Provides, Self::Remainder>>
+    ) -> pipeline_core::error::PipelineResult<pipeline_core::HCons<Self::Provides, H>>
     where
         H: pipeline_core::Sculptor<Self::Needs, Idx>,
     {
-        let (hlist_pat![_nill], remainder) = ctx.sculpt();
-
         let nonce = NonceType {
             nonce: NonceKey::generate(),
             expires_at: Utc::now() + Duration::seconds(30),
@@ -26,7 +24,7 @@ impl PureStep for GenerateNonce {
 
         Ok(HCons {
             head: hlist_macro![nonce],
-            tail: remainder,
+            tail: ctx,
         })
     }
 }

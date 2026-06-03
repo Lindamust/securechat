@@ -1,7 +1,7 @@
 use infra::database::{InsertsUser, PgDatabase};
 use pipeline_core::{
     HCons, HList, hlist_macro, hlist_pat,
-    step::{AsyncStep, ExecutorFor, PureStep},
+    step::{AsyncStep, ExecutorFor, PureConsumingStep, PureStep},
 };
 
 use domain::dto::{InsertedUser, NewUser, RegisterBody};
