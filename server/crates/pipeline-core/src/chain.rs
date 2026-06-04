@@ -42,13 +42,13 @@ impl<H: HList + Send, Exec: ?Sized> ExecuteChain<H, Exec> for HNil {
 }
 
 
-/// Recursive case: run A, feed extended HList into B.
+/// Recursive case: run A, feed new ctx HList into B.
 impl<H, Idx, A, B, Exec> ExecuteChain<H, Exec> for Then<A, B, Idx>
 where
     A: AsyncStep + Send,
-    H: HList + Sculptor<A::Needs, Idx, Remainder = H> + Send,
+    H: HList + Sculptor<A::Needs, Idx> + Send,
     Exec: ExecutorFor<A> + ?Sized + Sync,
-    B: ExecuteChain<HCons<A::Provides, H::Remainder>, Exec> + Send,
+    B: ExecuteChain<HCons<A::Provides, A::Remainder<H, Idx>>, Exec> + Send,
 {
     type Output = B::Output;
 

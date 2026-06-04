@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use pipeline_core::{HCons, HList, HNil, hlist_macro, hlist_pat, step::PureStep};
+use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep};
 
 use domain::models::{NonceKey, NonceType};
 
@@ -9,6 +9,10 @@ pub struct GenerateNonce;
 impl PureStep for GenerateNonce {
     type Needs = HList![HNil];
     type Provides = HList![NonceType];
+
+    type Remainder<H, Idx> = H
+        where
+            H: hlist_macro::Sculptor<Self::Needs, Idx> + HList;
 
     fn run<H, Idx>(
         self,
