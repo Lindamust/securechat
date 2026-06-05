@@ -12,24 +12,30 @@ pub trait PureStep {
     type Needs;
     type Provides;
 
-    fn run<OldCtx, NewCtx, Idx>(self, ctx: OldCtx) -> PipelineResult<NewCtx>
+    type Output<Ctx>: HList
     where
-        OldCtx: Sculptor<Self::Needs, Idx>,
-        NewCtx: HList;
+        Ctx: HList;
+
+    fn run<Ctx, Idx>(self, ctx: Ctx) -> PipelineResult<Self::Output<Ctx>>
+    where
+        Ctx: Sculptor<Self::Needs, Idx> + HList;
 }
 
 pub trait AsyncStep {
     type Needs;
     type Provides;
 
-    fn run<OldCtx, NewCtx, Idx, Exec>(
-        self,
-        ctx: OldCtx,
-        executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<NewCtx>> + Send
+    type Output<Ctx>: HList
     where
-        OldCtx: Sculptor<Self::Needs, Idx> + Send,
-        NewCtx: HList + Send,
+        Ctx: HList;
+
+    fn run<Ctx, Idx, Exec>(
+        self,
+        ctx: Ctx,
+        executor: &Exec,
+    ) -> impl Future<Output = PipelineResult<Self::Output<Ctx>>> + Send
+    where
+        Ctx: Sculptor<Self::Needs, Idx> + HList + Send,
         Exec: ExecutorFor<Self> + ?Sized + Sync;
 }
 
@@ -40,14 +46,17 @@ impl<S: PureStep + Send> AsyncStep for S
     type Needs = S::Needs;
     type Provides = S::Provides;
 
-    fn run<OldCtx, NewCtx, Idx, Exec>(
-        self,
-        ctx: OldCtx,
-        _executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<NewCtx>> + Send
+    type Output<Ctx> = S::Output<Ctx>
     where
-        OldCtx: Sculptor<Self::Needs, Idx> + Send,
-        NewCtx: HList + Send,
+        Ctx: HList;
+
+    fn run<Ctx, Idx, Exec>(
+        self,
+        ctx: Ctx,
+        _executor: &Exec,
+    ) -> impl Future<Output = PipelineResult<Self::Output<Ctx>>> + Send
+    where
+        Ctx: Sculptor<Self::Needs, Idx> + HList + Send,
         Exec: ExecutorFor<Self> + ?Sized + Sync
     {
         async move {

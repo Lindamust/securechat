@@ -11,12 +11,12 @@ use crate::{
     step::{AsyncStep, ExecutorFor},
 };
 
-// ── Then — composition node ───────────────────────────────────────────────────
+// Then composition node
 
 #[derive(Clone)]
 pub struct Then<A, B, Idx>(pub A, pub B, PhantomData<Idx>);
 
-// ── ExecuteChain — recursive execution trait ──────────────────────────────────
+// ExecuteChain recursive execution trait
 
 pub trait ExecuteChain<H, Exec: ?Sized> {
     type Output;
@@ -41,25 +41,41 @@ impl<H: HList + Send, Exec: ?Sized> ExecuteChain<H, Exec> for HNil {
     }
 }
 
-
 /// Recursive case: run A, feed new ctx HList into B.
-impl<H, Idx, A, B, Exec> ExecuteChain<H, Exec> for Then<A, B, Idx>
+//
+// H1 = Input Ctx for A
+// H2 = Output Ctx of A and Input Ctx for B
+// H3 = Total output
+// Idx is type inferred for each (?)
+// A: first step
+// B: second step
+// Exec: The runtime executing each step
+impl<H1, Idx, A, B, Exec> ExecuteChain<H1, Exec> for Then<A, B, Idx>
 where
     A: AsyncStep + Send,
-    H: HList + Sculptor<A::Needs, Idx> + Send,
-    Exec: ExecutorFor<A> + ?Sized + Sync,
-    B: ExecuteChain<HCons<A::Provides, A::Remainder<H, Idx>>, Exec> + Send,
+    B: AsyncStep + Send,
+
+    // Frunk Sculptor and HList
+    H1: HList + Sculptor<A::Needs, Idx> + Send,
+    A::Output<H1>: HList + Sculptor<B::Needs, Idx> + Send,
+    B::Output<A::Output<H1>>: HList + Send,
+
+    Exec: ExecutorFor<A> + ExecutorFor<B> + ?Sized + Sync,
 {
-    type Output = B::Output;
+    type Output = B::Output<A::Output<H1>>;
 
     fn execute(
         self,
-        ctx: H,
+        ctx: H1,
         executor: &Exec,
     ) -> impl Future<Output = PipelineResult<Self::Output>> + Send {
         async move {
-            let mid = self.0.run(ctx, executor).await?;
-            self.1.execute(mid, executor).await
+            let Then(a, b, _) = self;
+
+            let ctx2= a.run(ctx, executor).await?;
+            let ctx3 = b.run(ctx2, executor).await?;
+
+            Ok(ctx3)
         }
     }
 }

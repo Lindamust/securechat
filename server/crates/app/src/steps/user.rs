@@ -1,6 +1,6 @@
 use infra::database::{InsertsUser, PgDatabase};
 use pipeline_core::{
-    HCons, HList, Sculptor, hlist_macro, hlist_pat, step::{AsyncStep, PureStep},
+    HCons, HList, Sculptor, hlist_macro::{self, Plucker}, hlist_pat, step::{AsyncStep, PureStep},
 };
 
 use domain::dto::{NewUser, RegisterBody, InsertedUser};
@@ -10,39 +10,32 @@ pub struct HashPassword;
 
 impl PureStep for HashPassword {
     type Needs = HList![RegisterBody];
-    type Provides = HList![NewUser];
+    type Provides = NewUser;
 
-    // consumes
-    type Remainder<H, Idx> = <H as Sculptor<Self::Needs, Idx>>::Remainder
+    type Output<Ctx> = HCons<NewUser, <Ctx as Plucker<RegisterBody, _>>::Remainder>
         where
-            H: pipeline_core::Sculptor<Self::Needs, Idx> + HList;
+            Ctx: HList;
 
-    fn run<H, Idx>(
-        self,
-        ctx: H,
-    ) -> pipeline_core::error::PipelineResult<pipeline_core::HCons<Self::Provides, H::Remainder>>
-    where
-        H: pipeline_core::Sculptor<Self::Needs, Idx> + HList,
+    fn run<Ctx, Idx>(self, ctx: Ctx) -> pipeline_core::error::PipelineResult<Self::Output<Ctx>>
+        where
+            Ctx: Sculptor<Self::Needs, Idx> + HList,
     {
-        let (hlist_pat![reg_body], remainder) = ctx.sculpt();
+        let (hlist_pat![a], r) = ctx.sculpt();
 
-        let hashed_password = reg_body.password.hash();
+        let hashed_password = a.password.hash();
 
         let new_user = NewUser {
-            username: reg_body.username,
-            email: reg_body.email,
+            username: a.username,
+            email: a.email,
             hashed_password,
-            ik_pub: reg_body.ik_pub,
-            ik_pub_ed: reg_body.ik_pub_ed,
-            spk_pub: reg_body.spk_pub,
-            spk_pub_sig: reg_body.spk_pub_sig,
-            otpks: reg_body.otpks,
+            ik_pub: a.ik_pub,
+            ik_pub_ed: a.ik_pub_ed,
+            spk_pub: a.spk_pub,
+            spk_pub_sig: a.spk_pub_sig,
+            otpks: a.otpks,
         };
 
-        Ok(HCons {
-            head: hlist_macro![new_user],
-            tail: remainder,
-        })
+        Ok(hlist_macro![new_user, r])
     }
 }
 
@@ -53,19 +46,17 @@ impl AsyncStep for StoreUser {
     type Needs = HList![NewUser];
     type Provides = HList![InsertedUser];
 
-    // reads  (but technically could change to consume in the future)
-    type Remainder<H, Idx> = <H as Sculptor<Self::Needs, Idx>>::Remainder
+    type Output<Ctx> = HCons<InsertedUser, Ctx>
         where
-            H: Sculptor<Self::Needs, Idx> + HList;
+            Ctx: HList;
 
-    fn run<H, Idx, Exec>(
+    fn run<Ctx, Idx, Exec>(
         self,
-        ctx: H,
+        ctx: Ctx,
         executor: &Exec,
-    ) -> impl Future<Output = pipeline_core::error::PipelineResult<HCons<Self::Provides, Self::Remainder<H, Idx>>>> + Send
+    ) -> impl Future<Output = pipeline_core::error::PipelineResult<Self::Output<Ctx>>> + Send
     where
-        H: Sculptor<Self::Needs, Idx> + HList + Send,
-        Self::Remainder<H, Idxs>: Send,
+        Ctx: Sculptor<Self::Needs, Idx> + HList + Send,
         Exec: pipeline_core::step::ExecutorFor<Self> + ?Sized + Sync
     {
         async move {
@@ -79,35 +70,3 @@ impl AsyncStep for StoreUser {
     }
 }
 
-// impl AsyncStep for StoreUser {
-//     type Needs = HList![NewUser];
-//     type Provides = HList![InsertedUser];
-
-//     fn run<H, Idx, Exec>(
-//         self,
-//         ctx: H,
-//         executor: &Exec,
-//     ) -> impl Future<
-//         Output = pipeline_core::error::PipelineResult<HCons<Self::Provides, H::Remainder>>,
-//     > + Send
-//     where
-//         H: hlist_macro::Sculptor<Self::Needs, Idx> + Send,
-//         Exec: ExecutorFor<Self> + ?Sized + Sync,
-//     {
-//         async move {
-//             let (hlist_pat![new_user], remainder) = ctx.sculpt();
-
-//             let pg = unsafe { &*(executor as *const Exec as *const PgDatabase) };
-//             let res = pg.insert_user(&new_user).await?;
-
-//             Ok(HCons {
-//                 head: hlist_macro![res],
-//                 tail: remainder,
-//             })
-//         }
-//     }
-// }
-
-// use infra::database::InsertsUser;
-
-// impl<T: InsertsUser> ExecutorFor<StoreUser> for T {}

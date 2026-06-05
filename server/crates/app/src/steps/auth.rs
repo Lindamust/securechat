@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep};
+use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep, error::PipelineResult};
 
 use domain::models::{NonceKey, NonceType};
 
@@ -7,28 +7,20 @@ use domain::models::{NonceKey, NonceType};
 pub struct GenerateNonce;
 
 impl PureStep for GenerateNonce {
-    type Needs = HList![HNil];
-    type Provides = HList![NonceType];
+    type Needs = HNil;
+    type Provides = NonceType;
 
-    type Remainder<H, Idx> = H
+    type Output<Ctx> = HCons<NonceType, Ctx> where Ctx: HList;
+
+    fn run<Ctx, Idx>(self, ctx: Ctx) -> PipelineResult<Self::Output<Ctx>>
         where
-            H: hlist_macro::Sculptor<Self::Needs, Idx> + HList;
-
-    fn run<H, Idx>(
-        self,
-        ctx: H,
-    ) -> pipeline_core::error::PipelineResult<pipeline_core::HCons<Self::Provides, H>>
-    where
-        H: pipeline_core::Sculptor<Self::Needs, Idx>,
+            Ctx: hlist_macro::Sculptor<Self::Needs, Idx> + HList
     {
         let nonce = NonceType {
             nonce: NonceKey::generate(),
             expires_at: Utc::now() + Duration::seconds(30),
         };
 
-        Ok(HCons {
-            head: hlist_macro![nonce],
-            tail: ctx,
-        })
+        Ok(ctx.prepend(nonce))
     }
 }
