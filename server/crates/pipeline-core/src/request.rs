@@ -36,7 +36,7 @@ impl<S: Stage, T> Request<S, T> {
     }
 
     /// stage transition
-    pub(crate) fn advance<NextStage: Stage, U>(self, next: U) -> Request<NextStage, U> {
+    pub(crate) fn _advance<NextStage: Stage, U>(self, next: U) -> Request<NextStage, U> {
         Request::new(next)
     }
 }

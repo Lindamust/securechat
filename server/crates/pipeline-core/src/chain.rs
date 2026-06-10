@@ -1,86 +1,73 @@
-use std::future::Future;
-use std::marker::PhantomData;
+use core::future::Future;
+use core::marker::PhantomData;
+use core::ops::Add;
 
 use frunk::{
-    HCons, HNil,
+    HNil,
     hlist::{HList, Sculptor},
 };
 
 use crate::{
     error::PipelineResult,
+    hlist::ExtendsWith,
     step::{AsyncStep, ExecutorFor},
 };
 
-// Then composition node
-
+/// Then composition node
 #[derive(Clone)]
 pub struct Then<A, B, Idx>(pub A, pub B, PhantomData<Idx>);
 
-// ExecuteChain recursive execution trait
-
-pub trait ExecuteChain<H, Exec: ?Sized> {
-    type Output;
+//// recursive execution trait
+pub trait ExecuteChain<Ctx, Exec: ?Sized + Sync> {
+    type ChainOutput;
 
     fn execute(
         self,
-        ctx: H,
+        ctx: Ctx,
         executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<Self::Output>> + Send;
+    ) -> impl Future<Output = PipelineResult<Self::ChainOutput>> + Send;
 }
 
 /// Base case: empty chain, returns context unchanged.
-impl<H: HList + Send, Exec: ?Sized> ExecuteChain<H, Exec> for HNil {
-    type Output = H;
+impl<Ctx: Send, Exec: ?Sized + Sync> ExecuteChain<Ctx, Exec> for HNil {
+    type ChainOutput = Ctx;
 
     fn execute(
         self,
-        ctx: H,
+        ctx: Ctx,
         _executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<Self::Output>> + Send {
-        async move { Ok(ctx) }
+    ) -> impl Future<Output = PipelineResult<Self::ChainOutput>> + Send {
+        core::future::ready(Ok(ctx))
     }
 }
 
 /// Recursive case: run A, feed new ctx HList into B.
-//
-// H1 = Input Ctx for A
-// H2 = Output Ctx of A and Input Ctx for B
-// H3 = Total output
-// Idx is type inferred for each (?)
-// A: first step
-// B: second step
-// Exec: The runtime executing each step
-impl<H1, Idx, A, B, Exec> ExecuteChain<H1, Exec> for Then<A, B, Idx>
+impl<Ctx, Exec, A, B, Idx> ExecuteChain<Ctx, Exec> for Then<A, B, Idx>
 where
+    Ctx: HList + Sculptor<A::Target, Idx> + Send,
+    Ctx::Remainder: HList + Add<A::Extends> + Send,
+    <Ctx::Remainder as Add<A::Extends>>::Output: HList + Send,
+    Exec: ?Sized + Sync,
     A: AsyncStep + Send,
-    B: AsyncStep + Send,
-
-    // Frunk Sculptor and HList
-    H1: HList + Sculptor<A::Needs, Idx> + Send,
-    A::Output<H1>: HList + Sculptor<B::Needs, Idx> + Send,
-    B::Output<A::Output<H1>>: HList + Send,
-
-    Exec: ExecutorFor<A> + ExecutorFor<B> + ?Sized + Sync,
+    A::Rem<Ctx, Idx>: Send,
+    <A::Rem<Ctx, Idx> as ExtendsWith<A::Target>>::Output: Send,
+    B: ExecuteChain<<A::Rem<Ctx, Idx> as ExtendsWith<A::Target>>::Output, Exec> + Send,
 {
-    type Output = B::Output<A::Output<H1>>;
+    type ChainOutput = B::ChainOutput;
 
     fn execute(
         self,
-        ctx: H1,
+        ctx: Ctx,
         executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<Self::Output>> + Send {
+    ) -> impl Future<Output = PipelineResult<Self::ChainOutput>> + Send {
+        let Then(a, b, _) = self;
+
         async move {
-            let Then(a, b, _) = self;
-
-            let ctx2= a.run(ctx, executor).await?;
-            let ctx3 = b.run(ctx2, executor).await?;
-
-            Ok(ctx3)
+            let new_ctx = a.run_async(ctx, executor).await?;
+            b.execute(new_ctx, executor).await
         }
     }
 }
-
-// ── StepChain ─────────────────────────────────────────────────────────────────
 
 /// Lazy step chain bound to an executor type.
 pub struct StepChain<Steps: Clone, Exec: ?Sized> {
@@ -127,7 +114,7 @@ impl<Steps: Clone, Exec: ?Sized + Sync> StepChain<Steps, Exec> {
         self,
         ctx: H,
         executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<Steps::Output>> + Send
+    ) -> impl Future<Output = PipelineResult<Steps::ChainOutput>> + Send
     where
         Steps: ExecuteChain<H, Exec> + Send,
         H: HList + Send,

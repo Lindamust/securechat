@@ -10,7 +10,7 @@ pub struct Authenticated;
 pub struct Validated;
 
 /// Internal chain execution process
-pub(crate) struct Processing;
+pub(crate) struct _Processing;
 
 /// Raw infra result
 pub struct Executed;
@@ -29,12 +29,12 @@ blanket_impl!(Stage =>
     Authenticated,
     Validated,
     Executed,
-    Processing,
+    _Processing,
     Responded,
 );
 
 mod private {
-    use super::{Authenticated, Executed, Processing, Raw, Responded, Validated};
+    use super::{_Processing, Authenticated, Executed, Raw, Responded, Validated};
 
     pub trait Sealed {}
     blanket_impl!(Sealed =>
@@ -42,7 +42,7 @@ mod private {
         Authenticated,
         Validated,
         Executed,
-        Processing,
+        _Processing,
         Responded,
     );
 }
