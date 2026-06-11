@@ -3,6 +3,8 @@ use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep, error::Pipe
 
 use domain::models::{NonceKey, NonceType};
 
+// -------- auth/challenge --------
+
 #[derive(Clone)]
 pub struct GenerateNonce;
 
@@ -29,12 +31,14 @@ impl PureStep for GenerateNonce {
     }
 }
 
-
 /// async: inserts nonce
 /// needs: NonceType
 /// provides: NonceKey
 #[derive(Clone)]
 pub struct StoreNonce;
+
+
+// -------- auth/token --------
 
 /// async: gets stored nonce
 /// needs: SigBody (for the IkPub inside)
