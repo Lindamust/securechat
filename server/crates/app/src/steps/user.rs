@@ -45,20 +45,6 @@ impl PureStep for HashPassword {
 #[derive(Clone)]
 pub struct StoreUser;
 
-pub trait PureStep {
-    type Needs: HList;
-    type Provides;
-
-    fn run_pure<Ctx, Idx>(
-        self,
-        ctx: Ctx,
-    ) -> PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>
-    where
-        Ctx: HList + Sculptor<Self::Target, Idx>,
-        Ctx::Remainder: HList + Prepends<Self::Provides>,
-        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList;
-}
-
 impl AsyncStep for StoreUser {
     type Needs = HList![NewUser];
     type Provides = InsertedUser;
