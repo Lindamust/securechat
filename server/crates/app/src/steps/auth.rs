@@ -45,8 +45,28 @@ impl AsyncStep for StoreNonce {
     type Needs: HList![NonceType];
     type Provides: NonceKey;
 
-    todo!()
+    fn run_async<Ctx, Exec, Idx>(
+        self,
+        ctx: Ctx,
+        executor: &Exec,
+    ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
+    where
+        Ctx: HList + Sculptor<Self::Target, Idx> + Send,
+        Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
+        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
+        Exec: ExecutorFor<Self> + ?Sized + Sync,
+    {
+        async move {
+            let (hlist_pat![nonce_type], rem) = ctx.sculpt();
+
+            let pg = unsafe { &*(executor as *const Exec as *const PgDatabase)  };
+            let res = pg.insert_nonce(&nonce_type).await?;
+
+            Ok(rem.prepend_type(res))
+        }
+    }
 }
+
 
 // -------- auth/token --------
 // visibility: public
