@@ -41,6 +41,12 @@ impl PureStep for GenerateNonce {
 #[derive(Clone)]
 pub struct StoreNonce;
 
+impl AsyncStep for StoreNonce {
+    type Needs: HList![NonceType];
+    type Provides: NonceKey;
+
+    todo!()
+}
 
 // -------- auth/token --------
 // visibility: public
