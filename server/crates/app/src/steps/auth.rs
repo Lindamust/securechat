@@ -1,5 +1,6 @@
 use chrono::{Duration, Utc};
 use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep, error::PipelineResult};
+use infra::database::insert_auth_challenge::NonceRow;
 
 use domain::models::{NonceKey, NonceType};
 use domain::dto::{AuthChallengeBody};
@@ -73,14 +74,18 @@ impl AsyncStep for StoreNonce {
 // visibility: public
 
 /// async: gets stored nonce
-/// needs: SigBody (for the IkPub inside)
-/// provides: VerifyBody (SigBody + db row with user uuid)
+/// needs: ReqBody (for the IkPub inside)
+/// provides: VerifyBody (ReqBody + db row with user uuid)
 #[derive(Clone)]
 pub struct GetNonce;
 
+pub struct VerifyBody {
+    nonce_row: NonceRow,
+}
+
 impl AsyncStep for GetNonce {
     type Needs: HList![];
-    type Provides: None;
+    type Provides: VerifyBody;
 
     fn run_async<Ctx, Exec, Idx>(
         self,
