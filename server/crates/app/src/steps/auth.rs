@@ -78,6 +78,27 @@ impl AsyncStep for StoreNonce {
 #[derive(Clone)]
 pub struct GetNonce;
 
+impl AsyncStep for GetNonce {
+    type Needs: HList![];
+    type Provides: None;
+
+    fn run_async<Ctx, Exec, Idx>(
+        self,
+        ctx: Ctx,
+        executor: &Exec,
+    ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
+    where
+        Ctx: HList + Sculptor<Self::Target, Idx> + Send,
+        Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
+        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
+        Exec: ExecutorFor<Self> + ?Sized + Sync,
+    {
+        async move {
+            todo!()
+        }
+    }
+}
+
 /// pure: verify sigdata
 /// needs: VerifyBody
 /// provides: VerifyBody
