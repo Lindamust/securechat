@@ -44,13 +44,14 @@ impl CommandExecutor<AuthChallengeBody> for PgDatabase {
 }
 
 impl PgDatabase {
-    pub async fn store_nonce(&self, ik_pub: &IkPub, n: &NonceType) -> PipelineResult<()> {
+    pub async fn store_nonce(&self, ik_pub: &IkPub, n: &NonceType) -> PipelineResult<NonceKey> {
         sqlx::query!(
             r#"
                 INSERT INTO auth_challenges (nonce, user_id, expires_at)
                 SELECT $1, users.id, $3
                 FROM users
                 WHERE users.ik_pub = $2
+                RETURNING nonce as "nonce: NonceKey"
             "#,
             n.nonce as _,
             ik_pub as _,
@@ -59,7 +60,6 @@ impl PgDatabase {
         .execute(&self.pool)
         .await
         .map_err(db_err)?;
-        Ok(())
     }
 }
 
