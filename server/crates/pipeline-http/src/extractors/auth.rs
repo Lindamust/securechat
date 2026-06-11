@@ -1,8 +1,10 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use axum::{
     extract::FromRequestParts,
     http::{HeaderMap, request::Parts},
 };
-use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -15,7 +17,29 @@ use crate::error::HttpError;
 pub struct Claims {
     pub sub: Uuid,
     /// Expiry (Unix timestamp).
-    pub exp: usize,
+    pub exp: u64,
+}
+
+use jsonwebtoken::errors::Error as JwtError;
+
+
+pub fn mint_jwt(sub: Uuid) -> Result<String, JwtError> {
+    let curr_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs();
+
+    let exp = curr_time + 3600;
+
+    let secret = "SECRET".as_bytes();
+    let encoding_key = EncodingKey::from_secret(secret);
+
+    let claims = Claims {
+        sub,
+        exp,
+    };
+
+    encode(&Header::default(), &claims, &encoding_key)
 }
 
 /// What we know about the caller *after* the auth stage.

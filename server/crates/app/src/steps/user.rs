@@ -24,18 +24,18 @@ impl PureStep for HashPassword {
         Ctx::Remainder: HList + Prepends<Self::Provides>,
         <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList
     {
-        let (hlist_pat![reg_body], rem] = ctx.sculpt();
+        let (hlist_pat![reg_body], rem) = ctx.sculpt();
         let hashed_password = reg_body.password.hash();
 
         let new_user = NewUser {
-            username: a.username,
-            email: a.email,
+            username: reg_body.username,
+            email: reg_body.email,
             hashed_password,
-            ik_pub: a.ik_pub,
-            ik_pub_ed: a.ik_pub_ed,
-            spk_pub: a.spk_pub,
-            spk_pub_sig: a.spk_pub_sig,
-            otpks: a.otpks,
+            ik_pub: reg_body.ik_pub,
+            ik_pub_ed: reg_body.ik_pub_ed,
+            spk_pub: reg_body.spk_pub,
+            spk_pub_sig: reg_body.spk_pub_sig,
+            otpks: reg_body.otpks,
         };
 
         Ok(rem.prepend_type(new_user))
@@ -74,11 +74,37 @@ impl AsyncStep for StoreUser {
 // -------- api/fetch_prekeys --------
 // visibility: private
 
+// async: fetch from db
+// needs: target username
+// provides: prekey batch
+#[derive(Clone)]
+pub struct GetPrekeys;
+
+
 // -------- api/replenish_otpks --------
 // visibility: private
+
+// async: insert into db
+// needs: target uuid, otpks vec
+// provides: acknowledgement (insert count)
+#[derive(Clone)]
+pub struct AddOtpks;
 
 // -------- api/otpk_count --------
 // visibility: private
 
+// async: fetch from db
+// needs: target uuid
+// provides: count (i64)
+#[derive(Clone)]
+pub struct CheckOtpkCount;
+
 // -------- api/rotate_spk --------
 // visibility: private
+
+
+// async: insert into db
+// needs: target uuid, spk pub, spk pub sig
+// provides: acknowledgement (timestamp)
+#[derive(Clone)]
+pub struct ChangeSpk;

@@ -2,7 +2,7 @@ use domain::dto::{AuthChallengeBody, RegisterBody, SignedTokenBody};
 use domain::models::*;
 
 use core::ops::Add;
-use frunk::{HList, hlist, hlist::HList};
+use frunk::{HList, hlist, hlist::HList, HCons};
 
 pub trait IntoHList {
     type Output: HList;
@@ -69,11 +69,11 @@ where
 
 pub trait Prepends<S>: HList {
     type Output: HList;
-    fn prepend_type(self, s: S -> Self::Output;
+    fn prepend_type(self, s: S) -> Self::Output;
 }
 
 impl<S, H: HList> Prepends<S> for H {
-    type Output: HCons<S, H>;
+    type Output = HCons<S, H>;
     fn prepend_type(self, s: S) -> Self::Output {
         self.prepend(s)
     }

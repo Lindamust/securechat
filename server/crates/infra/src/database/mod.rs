@@ -5,6 +5,7 @@ mod insert_auth_challenge;
 mod insert_user;
 
 pub use insert_user::InsertsUser;
+pub use insert_auth_challenge::NonceRow;
 
 /// Postgres executor
 #[derive(Clone)]

@@ -7,6 +7,8 @@ use pipeline_core::{request::Request, stages::Executed};
 use pipeline_http::error::HttpResult;
 use pipeline_http::traits::CommandExecutor;
 
+use uuid::Uuid;
+
 use crate::database::{PgDatabase, db_err};
 
 impl CommandExecutor<AuthChallengeBody> for PgDatabase {
@@ -44,9 +46,9 @@ impl CommandExecutor<AuthChallengeBody> for PgDatabase {
 }
 
 pub struct NonceRow {
-    nonce_key: NonceKey,
-    user_uuid: Uuid,
-    expires_at: DateTime<Utc>,
+    pub nonce_key: NonceKey,
+    pub user_uuid: Uuid,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl PgDatabase {
@@ -70,13 +72,13 @@ impl PgDatabase {
 
     pub async fn get_nonce(&self, ik_pub: &IkPub) -> PipelineResult<NonceRow> {
         sqlx::query_as!(
-            NonceRow
+            NonceRow,
             r#"
                 SELECT auth_challenges.nonce, auth_challenges.user_id, auth_challenges.expires_at
                 FROM auth_challenges
                 INNER JOIN users ON user.id = auth_challenges.user_id
                 WHERE users.id = $1
-                AND auth_challenges.expires_at >= NOW() - INTERVAL '30 seconds';
+                AND auth_challenges.expires_at >= NOW() - INTERVAL '30 seconds'
             "#,
             ik_pub as _,
         )

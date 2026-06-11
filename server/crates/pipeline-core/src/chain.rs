@@ -1,6 +1,5 @@
 use core::future::Future;
 use core::marker::PhantomData;
-use core::ops::Add;
 
 use frunk::{
     HNil,
@@ -46,7 +45,7 @@ impl<A, B, Ctx, Exec, Idx> ExecuteChain<Ctx, Exec> for Then<A, B, Idx>
 where
     A: AsyncStep + Send,
     B: AsyncStep + Send,
-    Ctx: HList + Sculptor<A::Needs, Idx> + Send
+    Ctx: HList + Sculptor<A::Needs, Idx> + Send,
     Ctx::Remainder: HList + Prepends<A::Provides> + Send,
     <Ctx::Remainder as Prepends<A::Provides>>::Output: HList + Send,
     Exec: ?Sized + Sync + ExecutorFor<A> + ExecutorFor<B>,
