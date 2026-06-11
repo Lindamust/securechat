@@ -66,3 +66,15 @@ where
         self + s
     }
 }
+
+pub trait Prepends<S>: HList {
+    type Output: HList;
+    fn prepend_type(self, s: S -> Self::Output;
+}
+
+impl<S, H: HList> Prepends<S> for H {
+    type Output: HCons<S, H>;
+    fn prepend_type(self, s: S) -> Self::Output {
+        self.prepend(s)
+    }
+}
