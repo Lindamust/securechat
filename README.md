@@ -1,4 +1,10 @@
 # securechat
+Mini-project for my Y12 Software Engingeering Major Work
+
+# About
+This is meant to be an end-to-end encrypted messaging app based off of Signal's X3DH Key Agreement Protocol.
+https://signal.org/docs/specifications/x3dh/
+
 ## Pre-requisites
 1. Install the latest version of Rust here
    https://rust-lang.org/tools/install/
