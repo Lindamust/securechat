@@ -2,6 +2,7 @@ use chrono::{Duration, Utc};
 use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep, error::PipelineResult};
 
 use domain::models::{NonceKey, NonceType};
+use domain::dto::{AuthChallengeBody};
 
 // -------- auth/challenge --------
 // visibility: public
@@ -36,13 +37,13 @@ impl PureStep for GenerateNonce {
 }
 
 /// async: inserts nonce
-/// needs: NonceType
+/// needs: NonceType, auth req body
 /// provides: NonceKey
 #[derive(Clone)]
 pub struct StoreNonce;
 
 impl AsyncStep for StoreNonce {
-    type Needs: HList![NonceType];
+    type Needs: HList![NonceType, AuthChallengeBody];
     type Provides: NonceKey;
 
     fn run_async<Ctx, Exec, Idx>(
@@ -57,12 +58,12 @@ impl AsyncStep for StoreNonce {
         Exec: ExecutorFor<Self> + ?Sized + Sync,
     {
         async move {
-            let (hlist_pat![nonce_type], rem) = ctx.sculpt();
+            let (hlist_pat![nonce_type, auth_body], rem) = ctx.sculpt();
 
             let pg = unsafe { &*(executor as *const Exec as *const PgDatabase)  };
-            let res = pg.insert_nonce(&nonce_type).await?;
+            let nonce_key = pg.insert_nonce(&auth_body.ik_pub, &nonce_type).await?;
 
-            Ok(rem.prepend_type(res))
+            Ok(rem.prepend_type(nonce_key))
         }
     }
 }
