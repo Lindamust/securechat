@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{Duration, Utc, DateTime};
 use domain::dto::{AuthChallengeBody, InsertedNonce};
 use domain::models::{IkPub, NonceKey, NonceType};
 use pipeline_core::error::PipelineResult;
@@ -43,6 +43,12 @@ impl CommandExecutor<AuthChallengeBody> for PgDatabase {
     }
 }
 
+pub struct NonceRow {
+    nonce_key: NonceKey,
+    user_uuid: Uuid,
+    expires_at: DateTime<Utc>,
+}
+
 impl PgDatabase {
     pub async fn store_nonce(&self, ik_pub: &IkPub, n: &NonceType) -> PipelineResult<NonceKey> {
         sqlx::query!(
@@ -59,15 +65,22 @@ impl PgDatabase {
         )
         .execute(&self.pool)
         .await
-        .map_err(db_err)?;
+        .map_err(db_err)?
+    }
+
+    pub async fn get_nonce(&self, ik_pub: &IkPub) -> PipelineResult<NonceRow> {
+        sqlx::query_as!(
+            NonceRow
+            r#"
+                SELECT auth_challenges.nonce, auth_challenges.user_id, auth_challenges.expires_at
+                FROM auth_challenges
+                INNER JOIN users ON user.id = auth_challenges.user_id
+                WHERE users.id = $1
+            "#,
+            ik_pub as _,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?
     }
 }
-
-// #[derive(Clone)]
-// pub struct NonceStored;
-
-// impl ExecutorFor<NonceStored> for PgDatabase {}
-
-// impl AsyncStep for NonceStored {
-//     type Needs = ;
-// }
