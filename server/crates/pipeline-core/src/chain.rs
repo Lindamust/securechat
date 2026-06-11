@@ -9,7 +9,7 @@ use frunk::{
 
 use crate::{
     error::PipelineResult,
-    hlist::ExtendsWith,
+    hlist::Prepends,
     step::{AsyncStep, ExecutorFor},
 };
 
@@ -42,16 +42,15 @@ impl<Ctx: Send, Exec: ?Sized + Sync> ExecuteChain<Ctx, Exec> for HNil {
 }
 
 /// Recursive case: run A, feed new ctx HList into B.
-impl<Ctx, Exec, A, B, Idx> ExecuteChain<Ctx, Exec> for Then<A, B, Idx>
+impl<A, B, Ctx, Exec, Idx> ExecuteChain<Ctx, Exec> for Then<A, B, Idx>
 where
-    Ctx: HList + Sculptor<A::Target, Idx> + Send,
-    Ctx::Remainder: HList + Add<A::Extends> + Send,
-    <Ctx::Remainder as Add<A::Extends>>::Output: HList + Send,
-    Exec: ?Sized + Sync,
     A: AsyncStep + Send,
-    A::Rem<Ctx, Idx>: Send,
-    <A::Rem<Ctx, Idx> as ExtendsWith<A::Target>>::Output: Send,
-    B: ExecuteChain<<A::Rem<Ctx, Idx> as ExtendsWith<A::Target>>::Output, Exec> + Send,
+    B: AsyncStep + Send,
+    Ctx: HList + Sculptor<A::Needs, Idx> + Send
+    Ctx::Remainder: HList + Prepends<A::Provides> + Send,
+    <Ctx::Remainder as Prepends<A::Provides>>::Output: HList + Send,
+    Exec: ?Sized + Sync + ExecutorFor<A> + ExecutorFor<B>,
+    B: ExecuteChain<<Ctx::Remainder as Prepends<A::Provides>>::Output, Exec> + Send,
 {
     type ChainOutput = B::ChainOutput;
 
