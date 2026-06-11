@@ -1,7 +1,8 @@
 use domain::dto::{AuthChallengeBody, RegisterBody, SignedTokenBody};
 use domain::models::*;
 
-use frunk::{HList, hlist, hlist::HList};
+use core::ops::Add;
+use frunk::{HList, hlist, hlist::HList, HCons};
 
 pub trait IntoHList {
     type Output: HList;
@@ -44,5 +45,36 @@ impl IntoHList for SignedTokenBody {
     type Output = HList![IkPub, SigData];
     fn into_hlist(self) -> Self::Output {
         hlist![self.ik_pub, self.sig_data]
+    }
+}
+
+// copied this code from my hlist-borrow repo  https://github.com/Lindamust/hlist-borrow
+
+pub trait ExtendsWith<S: HList>: HList {
+    type Output: HList;
+    fn extend_hlist(self, s: S) -> Self::Output;
+}
+
+impl<S, H> ExtendsWith<S> for H
+where
+    S: HList,
+    H: HList + core::ops::Add<S>,
+    <H as Add<S>>::Output: HList,
+{
+    type Output = <H as Add<S>>::Output;
+    fn extend_hlist(self, s: S) -> Self::Output {
+        self + s
+    }
+}
+
+pub trait Prepends<S>: HList {
+    type Output: HList;
+    fn prepend_type(self, s: S) -> Self::Output;
+}
+
+impl<S, H: HList> Prepends<S> for H {
+    type Output = HCons<S, H>;
+    fn prepend_type(self, s: S) -> Self::Output {
+        self.prepend(s)
     }
 }

@@ -7,6 +7,6 @@ pub mod step;
 
 pub use frunk::{
     HList, hlist as hlist_macro,
-    hlist::{HCons, HNil, Sculptor},
+    hlist::{HCons, HList, HNil, Sculptor},
     hlist_pat,
 };

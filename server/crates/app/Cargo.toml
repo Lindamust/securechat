@@ -27,3 +27,4 @@ tracing-subscriber.workspace = true
 tracing.workspace = true
 anyhow.workspace = true
 dotenvy.workspace = true
+uuid.workspace = true

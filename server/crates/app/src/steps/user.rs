@@ -1,27 +1,30 @@
 use infra::database::{InsertsUser, PgDatabase};
 use pipeline_core::{
-    HCons, HList, hlist_macro, hlist_pat,
-    step::{AsyncStep, ExecutorFor, PureStep},
+    HCons, HList, Sculptor, hlist_macro::{self, Plucker}, hlist_pat, step::{AsyncStep, PureStep},
 };
 
-use domain::dto::{InsertedUser, NewUser, RegisterBody};
+use domain::dto::{NewUser, RegisterBody, InsertedUser};
+
+// -------- api/register --------
+// visibility: public
 
 #[derive(Clone)]
 pub struct HashPassword;
 
 impl PureStep for HashPassword {
     type Needs = HList![RegisterBody];
-    type Provides = HList![NewUser];
+    type Provides = NewUser;
 
-    fn run<H, Idx>(
+    fn run_pure<Ctx, Idx>(
         self,
-        ctx: H,
-    ) -> pipeline_core::error::PipelineResult<pipeline_core::HCons<Self::Provides, H::Remainder>>
+        ctx: Ctx,
+    ) -> PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>
     where
-        H: pipeline_core::Sculptor<Self::Needs, Idx>,
+        Ctx: HList + Sculptor<Self::Target, Idx>,
+        Ctx::Remainder: HList + Prepends<Self::Provides>,
+        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList
     {
-        let (hlist_pat![reg_body], remainder) = ctx.sculpt();
-
+        let (hlist_pat![reg_body], rem) = ctx.sculpt();
         let hashed_password = reg_body.password.hash();
 
         let new_user = NewUser {
@@ -35,10 +38,7 @@ impl PureStep for HashPassword {
             otpks: reg_body.otpks,
         };
 
-        Ok(HCons {
-            head: hlist_macro![new_user],
-            tail: remainder,
-        })
+        Ok(rem.prepend_type(new_user))
     }
 }
 
@@ -47,33 +47,64 @@ pub struct StoreUser;
 
 impl AsyncStep for StoreUser {
     type Needs = HList![NewUser];
-    type Provides = HList![InsertedUser];
+    type Provides = InsertedUser;
 
-    fn run<H, Idx, Exec>(
+    fn run_async<Ctx, Exec, Idx>(
         self,
-        ctx: H,
+        ctx: Ctx,
         executor: &Exec,
-    ) -> impl Future<
-        Output = pipeline_core::error::PipelineResult<HCons<Self::Provides, H::Remainder>>,
-    > + Send
+    ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
     where
-        H: hlist_macro::Sculptor<Self::Needs, Idx> + Send,
+        Ctx: HList + Sculptor<Self::Target, Idx> + Send,
+        Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
+        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
         Exec: ExecutorFor<Self> + ?Sized + Sync,
     {
         async move {
-            let (hlist_pat![new_user], remainder) = ctx.sculpt();
+            let (hlist_pat![new_user], rem) = ctx.sculpt();
 
-            let pg = unsafe { &*(executor as *const Exec as *const PgDatabase) };
+            let pg = unsafe { &*(executor as *const Exec as *const PgDatabase)  };
             let res = pg.insert_user(&new_user).await?;
 
-            Ok(HCons {
-                head: hlist_macro![res],
-                tail: remainder,
-            })
+            Ok(rem.prepend_type(res))
         }
     }
 }
 
-// use infra::database::InsertsUser;
+// -------- api/fetch_prekeys --------
+// visibility: private
 
-// impl<T: InsertsUser> ExecutorFor<StoreUser> for T {}
+// async: fetch from db
+// needs: target username
+// provides: prekey batch
+#[derive(Clone)]
+pub struct GetPrekeys;
+
+
+// -------- api/replenish_otpks --------
+// visibility: private
+
+// async: insert into db
+// needs: target uuid, otpks vec
+// provides: acknowledgement (insert count)
+#[derive(Clone)]
+pub struct AddOtpks;
+
+// -------- api/otpk_count --------
+// visibility: private
+
+// async: fetch from db
+// needs: target uuid
+// provides: count (i64)
+#[derive(Clone)]
+pub struct CheckOtpkCount;
+
+// -------- api/rotate_spk --------
+// visibility: private
+
+
+// async: insert into db
+// needs: target uuid, spk pub, spk pub sig
+// provides: acknowledgement (timestamp)
+#[derive(Clone)]
+pub struct ChangeSpk;

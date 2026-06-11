@@ -106,7 +106,7 @@ where
     where
         I: IntoHList<Output = H> + Send + 'static,
         H: HList + Send + 'static,
-        Steps: ExecuteChain<frunk::HCons<Identity, H>, Exec, Output = ChainOut>
+        Steps: ExecuteChain<frunk::HCons<Identity, H>, Exec, ChainOutput = ChainOut>
             + Clone
             + Send
             + Sync
@@ -117,11 +117,11 @@ where
         let run_fn = Arc::new(move |identity: Identity, input: I, executor: Arc<Exec>| {
             let chain = chain.clone();
             Box::pin(async move {
-                let hlist = frunk::HCons {
+                let initial = frunk::HCons {
                     head: identity,
                     tail: input.into_hlist(),
                 };
-                let output = chain.run(hlist, &*executor).await?;
+                let output = chain.run(initial, &*executor).await?;
                 let body = map_resp(Request::wrap(output))?;
                 Ok((StatusCode::CREATED, Json(body)).into_response())
             }) as Pin<Box<dyn Future<Output = HttpResult<Response>> + Send>>

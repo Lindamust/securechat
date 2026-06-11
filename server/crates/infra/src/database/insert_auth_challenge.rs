@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{Duration, Utc, DateTime};
 use domain::dto::{AuthChallengeBody, InsertedNonce};
 use domain::models::{IkPub, NonceKey, NonceType};
 use pipeline_core::error::PipelineResult;
@@ -6,6 +6,8 @@ use pipeline_core::step::{AsyncStep, ExecutorFor};
 use pipeline_core::{request::Request, stages::Executed};
 use pipeline_http::error::HttpResult;
 use pipeline_http::traits::CommandExecutor;
+
+use uuid::Uuid;
 
 use crate::database::{PgDatabase, db_err};
 
@@ -43,14 +45,21 @@ impl CommandExecutor<AuthChallengeBody> for PgDatabase {
     }
 }
 
+pub struct NonceRow {
+    pub nonce_key: NonceKey,
+    pub user_uuid: Uuid,
+    pub expires_at: DateTime<Utc>,
+}
+
 impl PgDatabase {
-    pub async fn store_nonce(&self, ik_pub: &IkPub, n: &NonceType) -> PipelineResult<()> {
+    pub async fn store_nonce(&self, ik_pub: &IkPub, n: &NonceType) -> PipelineResult<NonceKey> {
         sqlx::query!(
             r#"
                 INSERT INTO auth_challenges (nonce, user_id, expires_at)
                 SELECT $1, users.id, $3
                 FROM users
                 WHERE users.ik_pub = $2
+                RETURNING nonce as "nonce: NonceKey"
             "#,
             n.nonce as _,
             ik_pub as _,
@@ -58,16 +67,23 @@ impl PgDatabase {
         )
         .execute(&self.pool)
         .await
-        .map_err(db_err)?;
-        Ok(())
+        .map_err(db_err)?
+    }
+
+    pub async fn get_nonce(&self, ik_pub: &IkPub) -> PipelineResult<NonceRow> {
+        sqlx::query_as!(
+            NonceRow,
+            r#"
+                SELECT auth_challenges.nonce, auth_challenges.user_id, auth_challenges.expires_at
+                FROM auth_challenges
+                INNER JOIN users ON user.id = auth_challenges.user_id
+                WHERE users.id = $1
+                AND auth_challenges.expires_at >= NOW() - INTERVAL '30 seconds'
+            "#,
+            ik_pub as _,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?
     }
 }
-
-// #[derive(Clone)]
-// pub struct NonceStored;
-
-// impl ExecutorFor<NonceStored> for PgDatabase {}
-
-// impl AsyncStep for NonceStored {
-//     type Needs = ;
-// }
