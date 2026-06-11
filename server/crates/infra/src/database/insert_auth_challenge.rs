@@ -76,6 +76,7 @@ impl PgDatabase {
                 FROM auth_challenges
                 INNER JOIN users ON user.id = auth_challenges.user_id
                 WHERE users.id = $1
+                AND auth_challenges.expires_at >= NOW() - INTERVAL '30 seconds';
             "#,
             ik_pub as _,
         )
