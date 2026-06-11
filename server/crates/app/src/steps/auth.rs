@@ -4,7 +4,11 @@ use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep, error::Pipe
 use domain::models::{NonceKey, NonceType};
 
 // -------- auth/challenge --------
+// visibility: public
 
+/// pure: makes random nonce
+/// needs: none,
+/// provides: NonceType
 #[derive(Clone)]
 pub struct GenerateNonce;
 
@@ -39,6 +43,7 @@ pub struct StoreNonce;
 
 
 // -------- auth/token --------
+// visibility: public
 
 /// async: gets stored nonce
 /// needs: SigBody (for the IkPub inside)
