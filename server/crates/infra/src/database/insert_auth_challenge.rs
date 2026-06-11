@@ -1,8 +1,7 @@
-use chrono::{Duration, Utc, DateTime};
+use chrono::{DateTime, Duration, Utc};
 use domain::dto::{AuthChallengeBody, InsertedNonce};
 use domain::models::{IkPub, NonceKey, NonceType};
 use pipeline_core::error::PipelineResult;
-use pipeline_core::step::{AsyncStep, ExecutorFor};
 use pipeline_core::{request::Request, stages::Executed};
 use pipeline_http::error::HttpResult;
 use pipeline_http::traits::CommandExecutor;
@@ -46,14 +45,14 @@ impl CommandExecutor<AuthChallengeBody> for PgDatabase {
 }
 
 pub struct NonceRow {
-    pub nonce_key: NonceKey,
-    pub user_uuid: Uuid,
+    pub nonce: NonceKey,
+    pub user_id: Uuid,
     pub expires_at: DateTime<Utc>,
 }
 
 impl PgDatabase {
     pub async fn store_nonce(&self, ik_pub: &IkPub, n: &NonceType) -> PipelineResult<NonceKey> {
-        sqlx::query!(
+        sqlx::query_scalar!(
             r#"
                 INSERT INTO auth_challenges (nonce, user_id, expires_at)
                 SELECT $1, users.id, $3
@@ -65,25 +64,25 @@ impl PgDatabase {
             ik_pub as _,
             n.expires_at,
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await
-        .map_err(db_err)?
+        .map_err(db_err)
     }
 
     pub async fn get_nonce(&self, ik_pub: &IkPub) -> PipelineResult<NonceRow> {
         sqlx::query_as!(
             NonceRow,
             r#"
-                SELECT auth_challenges.nonce, auth_challenges.user_id, auth_challenges.expires_at
+                SELECT nonce, user_id, expires_at
                 FROM auth_challenges
-                INNER JOIN users ON user.id = auth_challenges.user_id
-                WHERE users.id = $1
-                AND auth_challenges.expires_at >= NOW() - INTERVAL '30 seconds'
+                INNER JOIN users ON id = user_id
+                WHERE id = $1
+                AND expires_at >= NOW() - INTERVAL '30 seconds'
             "#,
             ik_pub as _,
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await
-        .map_err(db_err)?
+        .map_err(db_err)
     }
 }

@@ -7,7 +7,6 @@ use pipeline_core::{
     error::{PipelineError, PipelineResult},
     request::Request,
     stages::Executed,
-    step::{AsyncStep, ExecutorFor},
 };
 use pipeline_http::{error::HttpResult, traits::CommandExecutor};
 

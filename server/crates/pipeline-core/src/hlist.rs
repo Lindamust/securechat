@@ -1,8 +1,10 @@
 use domain::dto::{AuthChallengeBody, RegisterBody, SignedTokenBody};
 use domain::models::*;
+use frunk::HNil;
+use frunk::hlist::Sculptor;
 
 use core::ops::Add;
-use frunk::{HList, hlist, hlist::HList, HCons};
+use frunk::{HCons, HList, hlist, hlist::HList};
 
 pub trait IntoHList {
     type Output: HList;
@@ -76,5 +78,29 @@ impl<S, H: HList> Prepends<S> for H {
     type Output = HCons<S, H>;
     fn prepend_type(self, s: S) -> Self::Output {
         self.prepend(s)
+    }
+}
+
+pub trait Extracts<S: HList, Idx>: HList {
+    type Remainder: HList + Send;
+    fn extract_types(self) -> (S, Self::Remainder);
+}
+
+impl<H: HList + Send, Idx> Extracts<HNil, Idx> for H {
+    type Remainder = H;
+    fn extract_types(self) -> (HNil, Self::Remainder) {
+        self.sculpt()
+    }
+}
+
+impl<Head, Tail, H, Idx> Extracts<HCons<Head, Tail>, Idx> for H
+where
+    H: HList + Sculptor<HCons<Head, Tail>, Idx>,
+    H::Remainder: HList + Send,
+    Tail: HList,
+{
+    type Remainder = <H as Sculptor<HCons<Head, Tail>, Idx>>::Remainder;
+    fn extract_types(self) -> (HCons<Head, Tail>, Self::Remainder) {
+        self.sculpt()
     }
 }

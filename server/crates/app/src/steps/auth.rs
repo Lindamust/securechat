@@ -1,18 +1,17 @@
 use chrono::{Duration, Utc};
+// use infra::crypto::verify_signed_nonce;
+// use infra::database::NonceRow;
 use pipeline_core::hlist::Prepends;
-use pipeline_core::hlist_pat;
-use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep, error::PipelineResult};
-use infra::database::NonceRow;
-use infra::crypto::verify_signed_nonce;
+// use pipeline_core::hlist_pat;
+use pipeline_core::{HList, HNil, error::PipelineResult, step::Step};
 
+// use pipeline_http::extractors::auth::mint_jwt;
 
-use pipeline_http::extractors::auth::mint_jwt;
+// use uuid::Uuid;
 
-use uuid::Uuid;
-
+// use domain::dto::{AuthChallengeBody, SignedTokenBody};
 use domain::models::{NonceKey, NonceType};
-use domain::dto::{AuthChallengeBody, SignedTokenBody};
-use pipeline_http::extractors::auth::Claims;
+// use pipeline_http::extractors::auth::Claims;
 
 // -------- auth/challenge --------
 // visibility: public
@@ -23,26 +22,31 @@ use pipeline_http::extractors::auth::Claims;
 #[derive(Clone)]
 pub struct GenerateNonce;
 
-impl PureStep for GenerateNonce {
+impl Step for GenerateNonce {
     type Needs = HNil;
     type Provides = NonceType;
 
-    fn run_pure<Ctx, Idx>(
+    fn run_step<Ctx, Exec, Idx>(
         self,
         ctx: Ctx,
-    ) -> PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>
+        _: &Exec,
+    ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
     where
-        Ctx: HList + Sculptor<Self::Target, Idx>,
-        Ctx::Remainder: HList + Prepends<Self::Provides>,
-        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList
+        Ctx: HList + pipeline_core::hlist::Extracts<Self::Needs, Idx> + Send,
+        Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
+        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
+        Exec: ?Sized + Sync + pipeline_core::step::ExecutorFor<Self>,
     {
-        let (_, rem) = ctx.sculpt();
-        let nonce_type = NonceType {
-            nonce: NonceKey::generate(),
-            expires_at: Utc::now() + Duration::seconds(30),
-        };
+        async move {
+            let (_, rem) = ctx.extract_types();
 
-        Ok(rem.prepend_type(nonce_type))
+            let nonce = NonceType {
+                nonce: NonceKey::generate(),
+                expires_at: Utc::now() + Duration::seconds(30),
+            };
+
+            Ok(rem.prepend_type(nonce))
+        }
     }
 }
 
@@ -52,135 +56,134 @@ impl PureStep for GenerateNonce {
 #[derive(Clone)]
 pub struct StoreNonce;
 
-impl AsyncStep for StoreNonce {
-    type Needs = HList![NonceType, AuthChallengeBody];
-    type Provides = NonceKey;
+// impl AsyncStep for StoreNonce {
+//     type Needs = HList![NonceType, AuthChallengeBody];
+//     type Provides = NonceKey;
 
-    fn run_async<Ctx, Exec, Idx>(
-        self,
-        ctx: Ctx,
-        executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
-    where
-        Ctx: HList + Sculptor<Self::Target, Idx> + Send,
-        Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
-        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
-        Exec: ExecutorFor<Self> + ?Sized + Sync,
-    {
-        async move {
-            let (hlist_pat![nonce_type, auth_body], rem) = ctx.sculpt();
+//     fn run_async<Ctx, Exec, Idx>(
+//         self,
+//         ctx: Ctx,
+//         executor: &Exec,
+//     ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
+//     where
+//         Ctx: HList + Sculptor<Self::Target, Idx> + Send,
+//         Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
+//         <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
+//         Exec: ExecutorFor<Self> + ?Sized + Sync,
+//     {
+//         async move {
+//             let (hlist_pat![nonce_type, auth_body], rem) = ctx.sculpt();
 
-            let pg = unsafe { &*(executor as *const Exec as *const PgDatabase)  };
-            let nonce_key = pg.insert_nonce(&auth_body.ik_pub, &nonce_type).await?;
+//             let pg = unsafe { &*(executor as *const Exec as *const PgDatabase) };
+//             let nonce_key = pg.insert_nonce(&auth_body.ik_pub, &nonce_type).await?;
 
-            Ok(rem.prepend_type(nonce_key))
-        }
-    }
-}
-
+//             Ok(rem.prepend_type(nonce_key))
+//         }
+//     }
+// }
 
 // -------- auth/token --------
 // visibility: public
 
-/// async: gets stored nonce
-/// needs: ReqBody (for the IkPub inside)
-/// provides: VerifyBody (ReqBody + db row with user uuid)
-#[derive(Clone)]
-pub struct GetNonce;
+// async: gets stored nonce
+// needs: ReqBody (for the IkPub inside)
+// provides: VerifyBody (ReqBody + db row with user uuid)
+// #[derive(Clone)]
+// pub struct GetNonce;
 
-pub struct VerifyBody {
-    nonce_row: NonceRow,
-    req_body: SignedTokenBody,
-}
+// pub struct VerifyBody {
+//     nonce_row: NonceRow,
+//     req_body: SignedTokenBody,
+// }
 
-impl AsyncStep for GetNonce {
-    type Needs = HList![SignedTokenBody];
-    type Provides = VerifyBody;
+// impl AsyncStep for GetNonce {
+//     type Needs = HList![SignedTokenBody];
+//     type Provides = VerifyBody;
 
-    fn run_async<Ctx, Exec, Idx>(
-        self,
-        ctx: Ctx,
-        executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
-    where
-        Ctx: HList + Sculptor<Self::Target, Idx> + Send,
-        Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
-        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
-        Exec: ExecutorFor<Self> + ?Sized + Sync,
-    {
-        async move {
-            let (hlist_pat![req_body], rem) = ctx.sculpt();
-            let pg = unsafe { &*(executor as *const Exec as *const PgDatabase)  };
-            let nonce_row = pg.get_nonce(&req_body.ik_pub).await?;
-            let verify_body = VerifyBody {
-                nonce_row,
-                req_body,
-            };
+//     fn run_async<Ctx, Exec, Idx>(
+//         self,
+//         ctx: Ctx,
+//         executor: &Exec,
+//     ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
+//     where
+//         Ctx: HList + Sculptor<Self::Target, Idx> + Send,
+//         Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
+//         <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
+//         Exec: ExecutorFor<Self> + ?Sized + Sync,
+//     {
+//         async move {
+//             let (hlist_pat![req_body], rem) = ctx.sculpt();
+//             let pg = unsafe { &*(executor as *const Exec as *const PgDatabase) };
+//             let nonce_row = pg.get_nonce(&req_body.ik_pub).await?;
+//             let verify_body = VerifyBody {
+//                 nonce_row,
+//                 req_body,
+//             };
 
-            Ok(rem.prepend_type(verify_body))
-        }
-    }
-}
+//             Ok(rem.prepend_type(verify_body))
+//         }
+//     }
+// }
 
-/// pure: verify sigdata
-/// needs: VerifyBody
-/// provides: VerifyBody
-#[derive(Clone)]
-pub struct VerifySignedNonce;
+// pure: verify sigdata
+// needs: VerifyBody
+// provides: VerifyBody
+// #[derive(Clone)]
+// pub struct VerifySignedNonce;
 
-impl PureStep for VerifySignedNonce {
-    type Needs = HList![VerifyBody];
-    type Provides = Uuid;
+// impl PureStep for VerifySignedNonce {
+//     type Needs = HList![VerifyBody];
+//     type Provides = Uuid;
 
-    fn run_pure<Ctx, Idx>(
-        self,
-        ctx: Ctx,
-    ) -> PipelineResult<<Ctx::Remainder as pipeline_core::hlist::Prepends<Self::Provides>>::Output>
-    where
-        Ctx: HList + hlist_macro::Sculptor<Self::Needs, Idx>,
-        Ctx::Remainder: HList + pipeline_core::hlist::Prepends<Self::Provides>,
-        <Ctx::Remainder as pipeline_core::hlist::Prepends<Self::Provides>>::Output: HList
-    {
-        let (hlist_pat![verify_body], rem) = ctx.sculpt();
-        
-        let ik_pub = &verify_body.req_body.ik_pub;
-        let nonce = &verify_body.nonce_row.nonce_key;
-        let sig = &verify_body.req_body.sig_data;
+//     fn run_pure<Ctx, Idx>(
+//         self,
+//         ctx: Ctx,
+//     ) -> PipelineResult<<Ctx::Remainder as pipeline_core::hlist::Prepends<Self::Provides>>::Output>
+//     where
+//         Ctx: HList + hlist_macro::Sculptor<Self::Needs, Idx>,
+//         Ctx::Remainder: HList + pipeline_core::hlist::Prepends<Self::Provides>,
+//         <Ctx::Remainder as pipeline_core::hlist::Prepends<Self::Provides>>::Output: HList,
+//     {
+//         let (hlist_pat![verify_body], rem) = ctx.sculpt();
 
-        match verify_signed_nonce(ik, nonce, sig) {
-            true => {}
-            false => return Err(pipeline_core::error::PipelineError::Forbidden)
-        }
+//         let ik_pub = &verify_body.req_body.ik_pub;
+//         let nonce = &verify_body.nonce_row.nonce_key;
+//         let sig = &verify_body.req_body.sig_data;
 
-        let uuid = verify_body.nonce_row.user_uuid;
+//         match verify_signed_nonce(ik, nonce, sig) {
+//             true => {}
+//             false => return Err(pipeline_core::error::PipelineError::Forbidden),
+//         }
 
-        Ok(rem.prepend_type(uuid))
-    }
-}
+//         let uuid = verify_body.nonce_row.user_uuid;
 
-/// pure: make new jwt
-/// needs: uuid,
-/// provides: JwtToken,
-#[derive(Clone)]
-pub struct MintJwt;
+//         Ok(rem.prepend_type(uuid))
+//     }
+// }
 
-impl PureStep for MintJwt {
-    type Needs = HList![Uuid];
-    type Provides = String;
+// pure: make new jwt
+// needs: uuid,
+// provides: JwtToken,
+// #[derive(Clone)]
+// pub struct MintJwt;
 
-    fn run_pure<Ctx, Idx>(
-        self,
-        ctx: Ctx,
-    ) -> PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>
-    where
-        Ctx: HList + hlist_macro::Sculptor<Self::Needs, Idx>,
-        Ctx::Remainder: HList + Prepends<Self::Provides>,
-        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList
-    {
-        let (hlist_pat![uuid], rem) = ctx.sculpt();
+// impl PureStep for MintJwt {
+//     type Needs = HList![Uuid];
+//     type Provides = String;
 
-        let jwt = mint_jwt(uuid)?;
+//     fn run_pure<Ctx, Idx>(
+//         self,
+//         ctx: Ctx,
+//     ) -> PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>
+//     where
+//         Ctx: HList + hlist_macro::Sculptor<Self::Needs, Idx>,
+//         Ctx::Remainder: HList + Prepends<Self::Provides>,
+//         <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList,
+//     {
+//         let (hlist_pat![uuid], rem) = ctx.sculpt();
 
-        Ok(rem.prepend_type(jwt))
-    }
-}
+//         let jwt = mint_jwt(uuid)?;
+
+//         Ok(rem.prepend_type(jwt))
+//     }
+// }

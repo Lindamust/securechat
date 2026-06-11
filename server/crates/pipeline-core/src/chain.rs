@@ -1,15 +1,12 @@
 use core::future::Future;
 use core::marker::PhantomData;
 
-use frunk::{
-    HNil,
-    hlist::{HList, Sculptor},
-};
+use frunk::{HNil, hlist::HList};
 
 use crate::{
     error::PipelineResult,
-    hlist::Prepends,
-    step::{AsyncStep, ExecutorFor},
+    hlist::{Extracts, Prepends},
+    step::{ExecutorFor, Step},
 };
 
 /// Then composition node
@@ -43,9 +40,9 @@ impl<Ctx: Send, Exec: ?Sized + Sync> ExecuteChain<Ctx, Exec> for HNil {
 /// Recursive case: run A, feed new ctx HList into B.
 impl<A, B, Ctx, Exec, Idx> ExecuteChain<Ctx, Exec> for Then<A, B, Idx>
 where
-    A: AsyncStep + Send,
-    B: AsyncStep + Send,
-    Ctx: HList + Sculptor<A::Needs, Idx> + Send,
+    A: Step + Send,
+    B: Step + Send,
+    Ctx: HList + Extracts<A::Needs, Idx> + Send,
     Ctx::Remainder: HList + Prepends<A::Provides> + Send,
     <Ctx::Remainder as Prepends<A::Provides>>::Output: HList + Send,
     Exec: ?Sized + Sync + ExecutorFor<A> + ExecutorFor<B>,
@@ -61,7 +58,7 @@ where
         let Then(a, b, _) = self;
 
         async move {
-            let new_ctx = a.run_async(ctx, executor).await?;
+            let new_ctx = a.run_step(ctx, executor).await?;
             b.execute(new_ctx, executor).await
         }
     }
