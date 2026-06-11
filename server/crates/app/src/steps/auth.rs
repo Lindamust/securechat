@@ -3,7 +3,7 @@ use pipeline_core::{HCons, HList, HNil, hlist_macro, step::PureStep, error::Pipe
 use infra::database::insert_auth_challenge::NonceRow;
 
 use domain::models::{NonceKey, NonceType};
-use domain::dto::{AuthChallengeBody};
+use domain::dto::{AuthChallengeBody, SignedTokenBody};
 
 // -------- auth/challenge --------
 // visibility: public
@@ -81,10 +81,11 @@ pub struct GetNonce;
 
 pub struct VerifyBody {
     nonce_row: NonceRow,
+    req_body: SignedTokenBody,
 }
 
 impl AsyncStep for GetNonce {
-    type Needs: HList![];
+    type Needs: HList![SignedTokenBody];
     type Provides: VerifyBody;
 
     fn run_async<Ctx, Exec, Idx>(
@@ -99,7 +100,15 @@ impl AsyncStep for GetNonce {
         Exec: ExecutorFor<Self> + ?Sized + Sync,
     {
         async move {
-            todo!()
+            let (hlist_pat![req_body], rem) = ctx.sculpt();
+            let pg = unsafe { &*(executor as *const Exec as *const PgDatabase)  };
+            let nonce_row = pg.get_nonce(&req_body.ik_pub).await?;
+            let verify_body = VerifyBody {
+                nonce_row,
+                req_body,
+            };
+
+            Ok(rem.prepend_type(verify_body))
         }
     }
 }
