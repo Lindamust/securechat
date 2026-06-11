@@ -7,7 +7,6 @@ use pipeline_core::{
     error::{PipelineError, PipelineResult},
     request::Request,
     stages::Executed,
-    step::{AsyncStep, ExecutorFor},
 };
 use pipeline_http::{error::HttpResult, traits::CommandExecutor};
 
@@ -79,7 +78,8 @@ impl CommandExecutor<RegisterUserCommand> for PgDatabase {
 }
 
 pub trait InsertsUser {
-    async fn insert_user(&self, new_user: &NewUser) -> PipelineResult<InsertedUser>;
+    fn insert_user(&self, new_user: &NewUser)
+    -> impl Future<Output = PipelineResult<InsertedUser>>;
 }
 
 impl InsertsUser for PgDatabase {
