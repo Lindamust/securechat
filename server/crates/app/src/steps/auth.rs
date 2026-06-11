@@ -29,5 +29,27 @@ impl PureStep for GenerateNonce {
     }
 }
 
+
+/// async: inserts nonce
+/// needs: NonceType
+/// provides: NonceKey
+#[derive(Clone)]
+pub struct StoreNonce;
+
+/// async: gets stored nonce
+/// needs: SigBody (for the IkPub inside)
+/// provides: VerifyBody (SigBody + db row with user uuid)
+#[derive(Clone)]
+pub struct GetNonce;
+
+/// pure: verify sigdata
+/// needs: VerifyBody
+/// provides: VerifyBody
 #[derive(Clone)]
 pub struct VerifySignedNonce;
+
+/// pure: make new jwt
+/// needs: VerifyBody,
+/// provides: JwtToken,
+#[derive(Clone)]
+pub struct MintJwt;
