@@ -78,7 +78,8 @@ impl CommandExecutor<RegisterUserCommand> for PgDatabase {
 }
 
 pub trait InsertsUser {
-    async fn insert_user(&self, new_user: &NewUser) -> PipelineResult<InsertedUser>;
+    fn insert_user(&self, new_user: &NewUser)
+    -> impl Future<Output = PipelineResult<InsertedUser>>;
 }
 
 impl InsertsUser for PgDatabase {

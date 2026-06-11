@@ -5,13 +5,13 @@ use frunk::{HNil, hlist::HList};
 
 use crate::{
     error::PipelineResult,
-    hlist::{Extracts, Prepends},
+    hlist::{Prepends, SculptedRemainder, Sculptor},
     step::{ExecutorFor, Step},
 };
 
 /// Then composition node
 #[derive(Clone)]
-pub struct Then<A, B, Idx>(pub A, pub B, PhantomData<Idx>);
+pub struct Then<A, B, Idx, Rem>(pub A, pub B, PhantomData<(Idx, Rem)>);
 
 //// recursive execution trait
 pub trait ExecuteChain<Ctx, Exec: ?Sized + Sync> {
@@ -37,16 +37,17 @@ impl<Ctx: Send, Exec: ?Sized + Sync> ExecuteChain<Ctx, Exec> for HNil {
     }
 }
 
-/// Recursive case: run A, feed new ctx HList into B.
-impl<A, B, Ctx, Exec, Idx> ExecuteChain<Ctx, Exec> for Then<A, B, Idx>
+// Recursive case: run A, feed new ctx HList into B.
+
+impl<A, B, Ctx, Exec, Idx, Rem> ExecuteChain<Ctx, Exec> for Then<A, B, Idx, Rem>
 where
     A: Step + Send,
-    B: Step + Send,
-    Ctx: HList + Extracts<A::Needs, Idx> + Send,
-    Ctx::Remainder: HList + Prepends<A::Provides> + Send,
-    <Ctx::Remainder as Prepends<A::Provides>>::Output: HList + Send,
+    Ctx: HList + Sculptor<A::Needs, Idx, Remainder = SculptedRemainder<Rem>> + Send,
+    Rem: HList + Send,
+    SculptedRemainder<Rem>: HList + Prepends<A::Provides> + Send,
+    <SculptedRemainder<Rem> as Prepends<A::Provides>>::Output: HList + Send,
     Exec: ?Sized + Sync + ExecutorFor<A> + ExecutorFor<B>,
-    B: ExecuteChain<<Ctx::Remainder as Prepends<A::Provides>>::Output, Exec> + Send,
+    B: Step + ExecuteChain<<SculptedRemainder<Rem> as Prepends<A::Provides>>::Output, Exec> + Send,
 {
     type ChainOutput = B::ChainOutput;
 
@@ -58,8 +59,8 @@ where
         let Then(a, b, _) = self;
 
         async move {
-            let new_ctx = a.run_step(ctx, executor).await?;
-            b.execute(new_ctx, executor).await
+            let ctx2 = a.run_step(ctx, executor).await?;
+            b.execute(ctx2, executor).await
         }
     }
 }
@@ -95,7 +96,10 @@ impl<Exec: ?Sized> Default for StepChain<HNil, Exec> {
 }
 
 impl<Steps: Clone, Exec: ?Sized + Sync> StepChain<Steps, Exec> {
-    pub fn step<S: Clone, Idx: Clone>(self, s: S) -> StepChain<Then<Steps, S, Idx>, Exec>
+    pub fn step<S: Clone, Idx: Clone, Rem: Clone>(
+        self,
+        s: S,
+    ) -> StepChain<Then<Steps, S, Idx, Rem>, Exec>
     where
         Exec: ExecutorFor<S>,
     {

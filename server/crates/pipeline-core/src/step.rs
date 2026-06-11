@@ -1,6 +1,6 @@
 use crate::{
     error::PipelineResult,
-    hlist::{Extracts, Prepends},
+    hlist::{Prepends, SculptedRemainder, Sculptor},
 };
 use frunk::hlist::HList;
 
@@ -12,14 +12,17 @@ pub trait Step {
     type Needs: HList + Send;
     type Provides: Send;
 
-    fn run_step<Ctx, Exec, Idx>(
+    fn run_step<Ctx, Rem, Exec, Idx>(
         self,
         ctx: Ctx,
         executor: &Exec,
-    ) -> impl Future<Output = PipelineResult<<Ctx::Remainder as Prepends<Self::Provides>>::Output>> + Send
+    ) -> impl Future<
+        Output = PipelineResult<<SculptedRemainder<Rem> as Prepends<Self::Provides>>::Output>,
+    > + Send
     where
-        Ctx: HList + Extracts<Self::Needs, Idx> + Send,
-        Ctx::Remainder: HList + Prepends<Self::Provides> + Send,
-        <Ctx::Remainder as Prepends<Self::Provides>>::Output: HList + Send,
+        Ctx: HList + Sculptor<Self::Needs, Idx, Remainder = SculptedRemainder<Rem>> + Send,
+        Rem: HList + Send,
+        SculptedRemainder<Rem>: HList + Prepends<Self::Provides> + Send,
+        <SculptedRemainder<Rem> as Prepends<Self::Provides>>::Output: HList + Send,
         Exec: ?Sized + Sync + ExecutorFor<Self>;
 }
