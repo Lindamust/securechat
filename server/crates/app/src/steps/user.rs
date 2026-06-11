@@ -5,6 +5,9 @@ use pipeline_core::{
 
 use domain::dto::{NewUser, RegisterBody, InsertedUser};
 
+// -------- api/register --------
+// visibility: public
+
 #[derive(Clone)]
 pub struct HashPassword;
 
@@ -82,3 +85,14 @@ impl AsyncStep for StoreUser {
     }
 }
 
+// -------- api/fetch_prekeys --------
+// visibility: private
+
+// -------- api/replenish_otpks --------
+// visibility: private
+
+// -------- api/otpk_count --------
+// visibility: private
+
+// -------- api/rotate_spk --------
+// visibility: private
